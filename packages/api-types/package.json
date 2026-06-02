@@ -1,0 +1,23 @@
+{
+  "name": "@emakao/api-types",
+  "version": "1.0.0",
+  "private": true,
+  "description": "",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "generate": "openapi-typescript ./openapi.json -o ./src/schema.d.ts",
+    "build": "pnpm generate",
+    "generate-types": "npx openapi-typescript http://localhost:3000/api-docs/openapi.json --output packages/api-types/src/schema.d.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@tanstack/react-query": "^5.100.14",
+    "openapi-fetch": "^0.17.0"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.13.0"
+  }
+}

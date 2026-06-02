@@ -1,0 +1,19 @@
+{
+  "name": "@emakao/shared",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Framework-agnostic utilities shared across web-staff, web-resident, and mobile",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "check-types": "tsc --noEmit"
+  },
+  "keywords": [],
+  "license": "ISC",
+  "dependencies": {
+    "@emakao/api-types": "workspace:^"
+  },
+  "devDependencies": {
+    "typescript": "^5"
+  }
+}

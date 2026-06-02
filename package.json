@@ -4,6 +4,8 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "dev:staff": "turbo run dev --filter=web-staff",
+    "dev:mobile": "turbo run dev --filter=mobile",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types"
@@ -16,5 +18,10 @@
   "packageManager": "pnpm@9.0.0",
   "engines": {
     "node": ">=18"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.100.14",
+    "openapi-fetch": "^0.17.0",
+    "zod": "^4.4.3"
   }
 }
