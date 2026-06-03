@@ -92,7 +92,7 @@ function useDashboard() {
   return useQuery<DashboardSummary>({
     queryKey: ["dashboard"],
     queryFn: async () => {
-      const res = await fetch("/api/proxy/v1/dashboard");
+      const res = await fetch("/api/proxy/api/v1/dashboard");
       if (!res.ok) throw new Error("Failed to load dashboard");
       return res.json() as Promise<DashboardSummary>;
     },
