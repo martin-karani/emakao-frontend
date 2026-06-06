@@ -12,14 +12,14 @@ const PUBLIC_PATHS = [
 ];
 
 /**
- * Path prefixes that bypass the middleware entirely
+ * Path prefixes that bypass the proxy entirely
  * (Next.js internals, API routes, and static assets).
  */
 const ALWAYS_ALLOW_PREFIXES = ["/_next/", "/api/", "/favicon"];
 
 function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some(
-    (p) => pathname === p || pathname.startsWith(`${p}/`)
+    (p) => pathname === p || pathname.startsWith(`${p}/`),
   );
 }
 
@@ -27,7 +27,7 @@ function isAlwaysAllowed(pathname: string): boolean {
   return ALWAYS_ALLOW_PREFIXES.some((p) => pathname.startsWith(p));
 }
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // ── 1. Never touch Next.js internals / API routes / static assets ──────────

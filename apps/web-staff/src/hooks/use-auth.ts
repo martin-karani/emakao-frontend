@@ -28,11 +28,17 @@ export function useAuth() {
     retry: false,
   });
 
+  const logout = async () => {
+    // In a real app, call a logout API. For now, we clear the session cookie or redirect.
+    window.location.href = "/api/proxy/api/v1/auth/logout";
+  };
+
   return {
     user: data,
     isLoading,
     error,
     refetch,
     isAuthenticated: !!data,
+    logout,
   };
 }

@@ -23,10 +23,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useWorkspace } from "@/hooks";
 
 /** Map backend AgreementStatus values to badge variants */
 function statusVariant(
-  status: Agreement["status"]
+  status: Agreement["status"],
 ): "default" | "secondary" | "destructive" | "outline" {
   switch (status) {
     case "active":
@@ -43,7 +44,10 @@ function statusVariant(
 }
 
 export default function LeasesPage() {
-  const { data: agreements, isLoading } = useAgreements();
+  const { workspaceMode, activePropertyId } = useWorkspace([]);
+  const { data: agreements, isLoading } = useAgreements({
+    property_id: workspaceMode === "property" ? activePropertyId : undefined,
+  });
   const terminateMutation = useTerminateAgreement();
 
   if (isLoading) {
@@ -84,19 +88,16 @@ export default function LeasesPage() {
             {agreements?.map((agreement) => (
               <TableRow key={agreement.id}>
                 <TableCell className="font-medium">
-                  {agreement.tenant_name}
-                  <div className="text-xs text-muted-foreground">
-                    {agreement.tenant_phone}
-                  </div>
+                  {agreement.resident_id}
                 </TableCell>
                 <TableCell>
-                  {agreement.property_name}
+                  {agreement.property_id}
                   <div className="text-xs text-muted-foreground">
-                    Unit: {agreement.unit_number}
+                    Unit: {agreement.unit_id}
                   </div>
                 </TableCell>
                 <TableCell className="text-right font-medium">
-                  {formatKES(agreement.rent_amount)}
+                  {formatKES(agreement.rent_amount_kes)}
                 </TableCell>
                 <TableCell className="text-center">
                   <Badge variant={statusVariant(agreement.status)}>
@@ -105,11 +106,13 @@ export default function LeasesPage() {
                 </TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon-sm">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
+                    <DropdownMenuTrigger
+                      render={
+                        <Button variant="ghost" size="sm">
+                          <MoreHorizontal className="w-4 h-4" />
+                        </Button>
+                      }
+                    />
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem>View Details</DropdownMenuItem>
                       <DropdownMenuItem

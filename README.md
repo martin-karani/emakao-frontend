@@ -137,6 +137,27 @@ pnpm --filter web-staff build
 
 ---
 
+## Production & Custom Domains
+
+When deploying to production (e.g., Vercel, AWS Amplify, or a VPS), you will map custom domains to each specific application. Here is the recommended domain architecture for eMakao:
+
+### 1. The Marketing Website (`web`)
+- **Domain:** `emakao.com` (Root domain)
+- **Purpose:** Serves the public-facing marketing landing page and connects users to the respective portals.
+
+### 2. The Agency Workspace (`web-staff`)
+- **Domain:** `app.emakao.com` or `agency.emakao.com`
+- **Purpose:** Handles the complex dashboard, properties management, and finance routing for agency staff.
+
+### 3. The Resident Portal (`web-resident`)
+- **Domain:** `resident.emakao.com` or `my.emakao.com`
+- **Purpose:** Gives tenants a dedicated login area separate from the staff environment.
+
+**Vercel Deployment Example:**
+To deploy on Vercel, create **3 separate projects**. Point all three projects to this single GitHub monorepo, but set their respective **Root Directory** settings to `apps/web`, `apps/web-staff`, and `apps/web-resident`. Then, assign the custom domains in each project's settings dashboard.
+
+---
+
 ## Environment Variables
 
 ### `apps/web-staff/.env.local`

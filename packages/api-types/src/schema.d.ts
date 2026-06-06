@@ -115,8 +115,20 @@ export interface paths {
      *
      *     The user is immediately active and can log in at
      *     `POST /api/v1/auth/login` with the supplied credentials.
-     *     Set `must_change_password: true` (coming soon) when you want the user to
-     *     rotate the password on first login.
+     *
+     *     ## FGA side-effect
+     *
+     *     On success, an OpenFGA agency-membership tuple is written:
+     *
+     *     ```text
+     *     user:{user_id}  —  {role}  —  agency:{agency_id}
+     *     ```
+     *
+     *     This enables the full fine-grained permission chain (`property.can_view`,
+     *     `agreement.can_edit`, etc.) from the moment the account is created.
+     *     If the FGA write fails, the error is logged but the user is still created —
+     *     the tuple can be re-synced via
+     *     `POST /api/v1/admin/agencies/{fga_store_id}/permissions/tuples`.
      */
     post: operations["create_staff_user"];
     delete?: never;
@@ -478,6 +490,23 @@ export interface paths {
     put?: never;
     /** Staff login — POST app.emakao.co.ke/api/v1/auth/login */
     post: operations["staff_login"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/auth/me": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get current user info — GET /api/v1/auth/me */
+    get: operations["get_me"];
+    put?: never;
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -1265,8 +1294,10 @@ export interface paths {
     /**
      * Invite a new staff member.
      * @description Creates an *inactive* platform user, binds them to the calling user's agency
-     *     with the requested role, and sends a 48-hour invite email.  The invitee
-     *     activates their account via `POST /api/v1/auth/accept-invite`.
+     *     with the requested role, writes the corresponding OpenFGA tuple so that
+     *     fine-grained permission checks are ready the moment the invite is accepted,
+     *     and sends a 48-hour invite email.  The invitee activates their account via
+     *     `POST /api/v1/auth/accept-invite`.
      *
      *     **Requires** a staff JWT (`admin`, `manager`, or `agent` role).
      */
@@ -1298,6 +1329,12 @@ export interface paths {
      *     but the record is retained for audit purposes.  This endpoint cannot be used
      *     to deactivate yourself — callers attempting to deactivate their own
      *     membership receive a `409 Conflict`.
+     *
+     *     After the DB deactivation succeeds the handler also revokes the OpenFGA
+     *     tuple (`user:{id}` — `{role}` — `agency:{id}`).  Tuple deletion is
+     *     best-effort: even if it fails, the member's JWT is invalidated at the DB
+     *     layer, so there is no immediate security exposure.  The stale tuple is safe
+     *     to leave in place until it is cleaned up via the admin permissions API.
      */
     delete: operations["deactivate_staff"];
     options?: never;
@@ -2451,6 +2488,18 @@ export interface components {
       /** Format: uuid */
       journal_entry_id: string;
     };
+    MeResponse: {
+      /** Format: uuid */
+      agency_id: string;
+      agency_name: string;
+      agency_slug: string;
+      email?: string | null;
+      phone?: string | null;
+      portal: components["schemas"]["PortalType"];
+      role: string;
+      /** Format: uuid */
+      user_id: string;
+    };
     MeterReadingResponse: {
       /** Format: uuid */
       id: string;
@@ -2652,6 +2701,9 @@ export interface components {
       property_type: components["schemas"]["PropertyType"];
       /** Format: date-time */
       updated_at: string;
+      work_order_prefix: string;
+      /** Format: int32 */
+      work_order_seq: number;
     };
     /**
      * @description properties.property_type
@@ -2895,6 +2947,7 @@ export interface components {
       address?: string | null;
       city?: string | null;
       name?: string | null;
+      work_order_prefix?: string | null;
     };
     UpdateVendorDto: {
       contact_name?: string | null;
@@ -4229,6 +4282,35 @@ export interface operations {
       };
       /** @description Validation error */
       422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+    };
+  };
+  get_me: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Current user info */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["MeResponse"];
+        };
+      };
+      /** @description Unauthorised */
+      401: {
         headers: {
           [name: string]: unknown;
         };
@@ -7105,7 +7187,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        /** @description Plan slug, e.g. `starter` */
+        /** @description Plan slug, e.g. `professional` */
         slug: string;
       };
       cookie?: never;

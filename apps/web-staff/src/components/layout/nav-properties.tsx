@@ -25,6 +25,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import Link from "next/link";
+import { useProperties, useWorkspace } from "@/hooks";
 
 /**
  * "Quick access" pinned properties — shortcuts to individual property pages.
@@ -34,20 +35,27 @@ export function NavProperties({
   properties,
 }: {
   properties: {
+    id?: string;
     name: string;
     url: string;
     icon: LucideIcon;
   }[];
 }) {
   const { isMobile } = useSidebar();
+  const { data: allProperties } = useProperties();
+  const { buildWorkspaceUrl } = useWorkspace(allProperties ?? []);
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
       <SidebarGroupLabel>Pinned Properties</SidebarGroupLabel>
       <SidebarMenu>
         {properties.map((item) => (
-          <SidebarMenuItem key={item.name}>
-            <SidebarMenuButton render={<Link href={item.url} />}>
+          <SidebarMenuItem key={item.id || item.name}>
+            <SidebarMenuButton
+              render={
+                <Link href={buildWorkspaceUrl(item.url, "property", item.id)} />
+              }
+            >
               <item.icon />
               <span>{item.name}</span>
             </SidebarMenuButton>
@@ -69,7 +77,7 @@ export function NavProperties({
                 {/* View Property */}
                 <DropdownMenuItem>
                   <Link
-                    href={item.url}
+                    href={buildWorkspaceUrl(item.url, "property", item.id)}
                     className="flex items-center gap-1.5 w-full"
                   >
                     <Eye className="text-muted-foreground size-4" />
@@ -80,7 +88,7 @@ export function NavProperties({
                 {/* View Leases */}
                 <DropdownMenuItem>
                   <Link
-                    href={`${item.url}/leases`}
+                    href={buildWorkspaceUrl("/leases", "property", item.id)}
                     className="flex items-center gap-1.5 w-full"
                   >
                     <Forward className="text-muted-foreground size-4" />
@@ -91,9 +99,7 @@ export function NavProperties({
                 <DropdownMenuSeparator />
 
                 {/* Remove Pin — no navigation, just action */}
-                <DropdownMenuItem
-                  className="text-destructive focus:text-destructive"
-                >
+                <DropdownMenuItem className="text-destructive focus:text-destructive">
                   <Trash2 className="size-4" />
                   <span>Remove Pin</span>
                 </DropdownMenuItem>

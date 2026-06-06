@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { DM_Sans, DM_Mono } from "next/font/google";
+import { Toaster } from "sonner";
+
 import "./globals.css";
 import { Providers } from "@/components/providers";
 
@@ -19,6 +21,7 @@ export const metadata: Metadata = {
   description: "Property management workspace for eMakao staff",
 };
 
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -31,6 +34,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <Providers>{children}</Providers>
+        <Toaster />
       </body>
     </html>
   );

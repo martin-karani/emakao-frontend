@@ -24,6 +24,7 @@ import type {
   WorkOrderPriority,
   WorkOrderCategory,
   WorkOrderReporterType,
+  CreateWorkOrderDto,
   UpdateWorkOrderDto,
 } from "@emakao/api-types";
 
@@ -106,7 +107,7 @@ export function useUpdateWorkOrder() {
         {
           params: { path: { id } },
           body,
-        }
+        },
       );
       if (error) throw new Error("Failed to update work order");
       return data;
@@ -115,12 +116,29 @@ export function useUpdateWorkOrder() {
       // Update the specific item in all list caches
       queryClient.setQueriesData<WorkOrder[]>(
         { queryKey: ["work-orders"] },
-        (old) => old?.map((w) => (w.id === updated.id ? updated : w))
+        (old) => old?.map((w) => (w.id === updated.id ? updated : w)),
       );
       // Update the individual detail cache
       queryClient.setQueryData(["work-orders", updated.id], updated);
     },
     onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["work-orders"] });
+    },
+  });
+}
+
+export function useCreateWorkOrder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (body: CreateWorkOrderDto): Promise<WorkOrder> => {
+      const { data, error } = await apiClient.POST("/api/v1/work-orders", {
+        body,
+      });
+      if (error) throw new Error("Failed to create work order");
+      return data;
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["work-orders"] });
     },
   });

@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/table";
 import { FileDown, RefreshCcw, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { formatShortDate } from "@/lib/date-format";
 
 export default function FinanceDashboard() {
   const { data: statements, isLoading } = useBankStatements();
@@ -73,7 +74,7 @@ export default function FinanceDashboard() {
               return (
                 <TableRow key={statement.id}>
                   <TableCell className="font-medium">
-                    {new Date(statement.statement_date).toLocaleDateString()}
+                    {formatShortDate(statement.statement_date)}
                   </TableCell>
                   <TableCell>
                     <div className="font-medium text-gray-900">

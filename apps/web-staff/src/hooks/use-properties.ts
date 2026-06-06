@@ -1,6 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@emakao/api-client";
-import type { Property, PropertyType } from "@emakao/api-types";
+import type {
+  Property,
+  PropertyType,
+  CreatePropertyDto,
+} from "@emakao/api-types";
 
 interface UsePropertiesOptions {
   property_type?: PropertyType;
@@ -27,12 +31,12 @@ export function useProperties(options: UsePropertiesOptions = {}) {
   });
 }
 
-export function useProperty(id: string) {
+export function useProperty(id: string | undefined) {
   return useQuery({
     queryKey: ["properties", id],
     queryFn: async (): Promise<Property> => {
       const { data, error } = await apiClient.GET("/api/v1/properties/{id}", {
-        params: { path: { id } },
+        params: { path: { id: id! } },
       });
       if (error) throw new Error("Failed to fetch property");
       return data;
@@ -40,6 +44,65 @@ export function useProperty(id: string) {
     enabled: !!id,
   });
 }
+
+// ── Create ────────────────────────────────────────────────────────────────────
+
+export function useCreateProperty() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (dto: CreatePropertyDto): Promise<Property> => {
+      const { data, error } = await apiClient.POST("/api/v1/properties", {
+        body: dto,
+      });
+      if (error) {
+        // Surface the backend validation message when available
+        const msg =
+          (error as { message?: string }).message ??
+          "Failed to create property";
+        throw new Error(msg);
+      }
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["properties"] });
+    },
+  });
+}
+
+// ── Update ────────────────────────────────────────────────────────────────────
+
+export function useUpdateProperty() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      dto,
+    }: {
+      id: string;
+      dto: {
+        name?: string;
+        address?: string;
+        city?: string;
+        work_order_prefix?: string;
+      };
+    }): Promise<Property> => {
+      const { data, error } = await apiClient.PUT("/api/v1/properties/{id}", {
+        params: { path: { id } },
+        body: dto,
+      });
+      if (error) throw new Error("Failed to update property");
+      return data;
+    },
+    onSuccess: (updated) => {
+      queryClient.setQueryData(["properties", updated.id], updated);
+      queryClient.invalidateQueries({ queryKey: ["properties"] });
+    },
+  });
+}
+
+// ── Delete ────────────────────────────────────────────────────────────────────
 
 export function useDeleteProperty() {
   const queryClient = useQueryClient();
@@ -53,7 +116,6 @@ export function useDeleteProperty() {
     },
     onMutate: async (deletedId) => {
       await queryClient.cancelQueries({ queryKey: ["properties"] });
-      // Snapshot all property query variants for rollback
       const snapshot = queryClient.getQueriesData<Property[]>({
         queryKey: ["properties"],
       });
@@ -65,7 +127,6 @@ export function useDeleteProperty() {
       return { snapshot };
     },
     onError: (_err, _id, context) => {
-      // Roll back all property query variants
       context?.snapshot.forEach(([queryKey, data]) => {
         queryClient.setQueryData(queryKey, data);
       });

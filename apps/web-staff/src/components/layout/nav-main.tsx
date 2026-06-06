@@ -18,9 +18,13 @@ import {
 } from "@/components/ui/sidebar";
 import Link from "next/link";
 
+import { useProperties, useWorkspace } from "@/hooks";
+
 export function NavMain({
+  label = "Management",
   items,
 }: {
+  label?: string;
   items: {
     title: string;
     url: string;
@@ -32,9 +36,12 @@ export function NavMain({
     }[];
   }[];
 }) {
+  const { data: properties } = useProperties();
+  const { buildWorkspaceUrl } = useWorkspace(properties ?? []);
+
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Management</SidebarGroupLabel>
+      <SidebarGroupLabel>{label}</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => (
           <Collapsible
@@ -57,7 +64,7 @@ export function NavMain({
                   {item.items?.map((subItem) => (
                     <SidebarMenuSubItem key={subItem.title}>
                       <SidebarMenuSubButton
-                        render={<Link href={subItem.url} />}
+                        render={<Link href={buildWorkspaceUrl(subItem.url)} />}
                       >
                         <span>{subItem.title}</span>
                       </SidebarMenuSubButton>

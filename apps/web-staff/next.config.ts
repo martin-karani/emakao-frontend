@@ -1,3 +1,4 @@
+import path from "node:path";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
@@ -12,6 +13,12 @@ const nextConfig: NextConfig = {
     "@emakao/api-client",
     "@emakao/api-types",
   ],
+  turbopack: {
+    // Keep Turbopack rooted at the frontend workspace so shared workspace
+    // packages resolve consistently and Next.js stops inferring from lockfiles.
+    root: path.join(process.cwd(), "../.."),
+  },
+  devIndicators: false,
 };
 
 export default nextConfig;

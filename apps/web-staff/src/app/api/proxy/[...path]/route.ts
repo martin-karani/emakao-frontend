@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
 
 type RouteContext = { params: Promise<{ path: string[] }> };
 
@@ -20,47 +20,57 @@ async function handler(req: NextRequest, { params }: RouteContext) {
 
   const cookieStore = await cookies();
   const token = cookieStore.get("emakao_auth_token")?.value;
-  const agencySlug =
-    cookieStore.get("active_agency_slug")?.value ?? "default";
+  const agencySlug = cookieStore.get("active_agency_slug")?.value ?? "default";
 
   const headers = new Headers(req.headers);
   headers.delete("host"); // prevent host header mismatch on the backend
+  headers.delete("connection");
+  headers.delete("content-length");
+  headers.delete("transfer-encoding");
+
   headers.set("X-Agency-Slug", agencySlug);
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
   }
 
+  // Use req.body directly as a stream for proxying. This is the most memory-efficient
+  // way and preserves the raw bytes (including multipart boundaries) perfectly.
+  // Next.js requires duplex: "half" when the body is a stream.
+  const isBodyMethod = ["POST", "PUT", "PATCH"].includes(req.method ?? "");
+  const body = isBodyMethod ? req.body : undefined;
+
   try {
     const response = await fetch(url.toString(), {
       method: req.method,
       headers,
-      body: req.body,
+      body,
       redirect: "manual",
-      // "duplex: half" is required by Node.js fetch whenever req.body is a
-      // ReadableStream (i.e. for POST / PUT / PATCH with a body). Without it
-      // those requests silently drop the body. The standard RequestInit type
-      // doesn't include this option yet, so we cast to silence TypeScript.
+      // @ts-expect-error - duplex is required for streaming bodies in fetch
       duplex: "half",
-    } as RequestInit & { duplex: string });
+    });
+
+    const responseHeaders = new Headers(response.headers);
+    responseHeaders.delete("content-encoding");
+    responseHeaders.delete("content-length");
 
     return new NextResponse(response.body, {
       status: response.status,
-      headers: response.headers,
+      headers: responseHeaders,
     });
   } catch (error) {
     console.error("[PROXY_ERROR]", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 // ── Named method exports (the only form Next.js App Router accepts) ───────────
-export const GET     = handler;
-export const POST    = handler;
-export const PUT     = handler;
-export const PATCH   = handler;
-export const DELETE  = handler;
-export const HEAD    = handler;
+export const GET = handler;
+export const POST = handler;
+export const PUT = handler;
+export const PATCH = handler;
+export const DELETE = handler;
+export const HEAD = handler;
 export const OPTIONS = handler;

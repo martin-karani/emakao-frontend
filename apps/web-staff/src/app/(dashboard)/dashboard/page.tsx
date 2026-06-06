@@ -1,7 +1,9 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useProperties, useWorkspace } from "@/hooks";
 import { formatKES } from "@emakao/shared";
+import { formatLongDate, formatMonthYear } from "@/lib/date-format";
 import {
   Building2,
   CreditCard,
@@ -174,10 +176,216 @@ const PRIORITY_STYLES: Record<MaintenanceSummary["priority"], string> = {
   low: "text-blue-700 bg-blue-50 border-blue-200",
 };
 
+function PropertyWorkspaceView({
+  propertyName,
+  generatedAt,
+  summary,
+  expiringLeases,
+  pendingMaintenance,
+}: {
+  propertyName: string;
+  generatedAt: string;
+  summary?: PropertyOccupancySummary;
+  expiringLeases: ExpiringLease[];
+  pendingMaintenance: MaintenanceSummary[];
+}) {
+  if (!summary) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">{propertyName}</h2>
+          <p className="text-sm text-muted-foreground">
+            {formatLongDate(generatedAt)}
+          </p>
+        </div>
+        <div className="border border-dashed rounded-md p-8 text-center text-muted-foreground text-sm">
+          No occupancy data available for this property yet.
+        </div>
+      </div>
+    );
+  }
+
+  const occupancyPct = parseFloat(summary.occupancy_rate_pct ?? "0");
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight">
+          {summary.property_name}
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          {summary.city} · {formatLongDate(generatedAt)}
+        </p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          title="Total Units"
+          value={summary.total_units}
+          description="Units in this property"
+          icon={Building2}
+        />
+        <StatCard
+          title="Occupied Units"
+          value={summary.occupied_units}
+          description={`${occupancyPct.toFixed(1)}% occupancy`}
+          icon={Users}
+        />
+        <StatCard
+          title="Vacant Units"
+          value={summary.vacant_units}
+          description="Available or unoccupied"
+          icon={AlertTriangle}
+        />
+        <StatCard
+          title="Open Work Orders"
+          value={summary.open_work_orders}
+          description={
+            summary.open_work_orders === 0
+              ? "No pending issues"
+              : "Needs follow-up"
+          }
+          icon={Wrench}
+        />
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="h-4 w-4" />
+              Property Performance
+            </CardTitle>
+            <CardDescription>
+              Current occupancy and rent collection for this property
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Occupancy</span>
+              <span className="font-medium">{occupancyPct.toFixed(1)}%</span>
+            </div>
+            <div className="h-2 rounded-full bg-muted overflow-hidden">
+              <div
+                className="h-full rounded-full bg-primary"
+                style={{ width: `${Math.min(occupancyPct, 100)}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Occupied</span>
+              <span className="font-medium">{summary.occupied_units}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Vacant</span>
+              <span className="font-medium">{summary.vacant_units}</span>
+            </div>
+            <div className="flex justify-between border-t pt-3 text-sm">
+              <span className="font-medium">Rent collected</span>
+              <span className="font-semibold">
+                {formatKES(summary.rent_collected_this_month_kes)}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              Expiring Leases
+            </CardTitle>
+            <CardDescription>
+              Leases for this property ending in the next 30 days
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {expiringLeases.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No leases are expiring soon for this property.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {expiringLeases.slice(0, 6).map((lease) => (
+                  <div
+                    key={lease.agreement_id}
+                    className="flex items-center justify-between gap-3"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">
+                        {lease.resident_name}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Unit {lease.unit_number}
+                      </p>
+                    </div>
+                    <Badge
+                      variant={
+                        lease.days_until_expiry <= 7 ? "destructive" : "outline"
+                      }
+                    >
+                      {lease.days_until_expiry}d
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Wrench className="h-4 w-4" />
+            Maintenance Queue
+          </CardTitle>
+          <CardDescription>
+            Work orders currently open for this property
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {pendingMaintenance.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No open work orders for this property.
+            </p>
+          ) : (
+            <div className="divide-y">
+              {pendingMaintenance.slice(0, 8).map((wo) => (
+                <div
+                  key={wo.work_order_id}
+                  className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{wo.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {wo.unit_number
+                        ? `Unit ${wo.unit_number}`
+                        : "Property-level"}{" "}
+                      · {wo.days_open}d open
+                    </p>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className={`flex-shrink-0 ${PRIORITY_STYLES[wo.priority]}`}
+                  >
+                    {wo.priority}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
   const { data, isLoading, error } = useDashboard();
+  const { data: properties = [] } = useProperties({ limit: 100 });
+  const { isPropertyWorkspace, activeProperty } = useWorkspace(properties);
 
   if (isLoading) return <DashboardSkeleton />;
 
@@ -195,12 +403,44 @@ export default function DashboardPage() {
     rent_collection,
     expiring_leases,
     pending_maintenance,
-    properties,
+    properties: propertySummaries,
   } = data;
 
   const occupancyPct = parseFloat(portfolio.occupancy_rate_pct ?? "0");
   const collectionPct = parseFloat(rent_collection.collection_rate_pct ?? "0");
   const hasOutstanding = parseFloat(rent_collection.outstanding_kes) > 0;
+
+  const activePropertySummary = activeProperty
+    ? propertySummaries.find(
+        (property) =>
+          property.property_id === activeProperty.id ||
+          property.property_name === activeProperty.name,
+      )
+    : undefined;
+
+  const filteredLeases = activeProperty
+    ? expiring_leases.filter(
+        (lease) => lease.property_name === activeProperty.name,
+      )
+    : expiring_leases;
+
+  const filteredMaintenance = activeProperty
+    ? pending_maintenance.filter(
+        (workOrder) => workOrder.property_name === activeProperty.name,
+      )
+    : pending_maintenance;
+
+  if (isPropertyWorkspace && activeProperty) {
+    return (
+      <PropertyWorkspaceView
+        propertyName={activeProperty.name}
+        generatedAt={data.generated_at}
+        summary={activePropertySummary}
+        expiringLeases={filteredLeases}
+        pendingMaintenance={filteredMaintenance}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -210,12 +450,7 @@ export default function DashboardPage() {
           Portfolio Overview
         </h2>
         <p className="text-muted-foreground text-sm">
-          {new Date(data.generated_at).toLocaleDateString("en-KE", {
-            weekday: "long",
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })}
+          {formatLongDate(data.generated_at)}
         </p>
       </div>
 
@@ -263,9 +498,7 @@ export default function DashboardPage() {
               Rent Collection
             </CardTitle>
             <CardDescription>
-              {new Date(
-                rent_collection.period_start + "T00:00:00"
-              ).toLocaleString("en-KE", { month: "long", year: "numeric" })}
+              {formatMonthYear(`${rent_collection.period_start}T00:00:00`)}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -394,7 +627,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Per-property breakdown ── */}
-      {properties.length > 0 && (
+      {propertySummaries.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Properties</CardTitle>
@@ -404,7 +637,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="divide-y">
-              {properties.map((prop) => {
+              {propertySummaries.map((prop) => {
                 const rate = parseFloat(prop.occupancy_rate_pct);
                 return (
                   <div
@@ -474,7 +707,7 @@ export default function DashboardPage() {
               Pending Maintenance
             </CardTitle>
             <CardDescription>
-              Open and in-progress work orders needing attention
+              Work orders currently open for this property
             </CardDescription>
           </CardHeader>
           <CardContent>
