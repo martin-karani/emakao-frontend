@@ -154,7 +154,7 @@ export interface paths {
          *     model.  Old model versions remain intact; only new `check` calls will
          *     evaluate the new version.
          */
-        post: operations["update_auth_model"];
+        post: operations["publish_auth_model"];
         delete?: never;
         options?: never;
         head?: never;
@@ -179,12 +179,12 @@ export interface paths {
          *     { "user": "user:abc123", "relation": "manager", "object": "property:xyz789" }
          *     ```
          */
-        post: operations["write_permission_tuple"];
+        post: operations["grant_permission_tuple"];
         /**
          * DELETE /api/v1/admin/agencies/:fga_store_id/permissions/tuples
          * @description Revoke a relation tuple from the agency's FGA store.
          */
-        delete: operations["delete_permission_tuple"];
+        delete: operations["revoke_permission_tuple"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1750,13 +1750,7 @@ export interface components {
             /** Format: date */
             value_date: string;
         };
-        /**
-         * @description A bank statement with its transaction lines.
-         *
-         *     The `lines` field is populated for single-statement GET requests.
-         *     List responses omit lines for performance — use the detail endpoint to
-         *     fetch a specific statement with its full set of lines.
-         */
+        /** @description A bank statement with its transaction lines. */
         BankStatementResponse: {
             account_number: string;
             /** Format: uuid */
@@ -1766,11 +1760,23 @@ export interface components {
             /** Format: date-time */
             created_at: string;
             /** Format: uuid */
-            created_by: string;
+            id: string;
+            lines: components["schemas"]["BankStatementLineResponse"][];
+            opening_balance: string;
+            /** Format: date */
+            statement_date: string;
+        };
+        BankStatementSummaryResponse: {
+            account_number: string;
+            /** Format: uuid */
+            agency_id: string;
+            bank_name: string;
+            closing_balance: string;
+            /** Format: date-time */
+            created_at: string;
             /** Format: uuid */
             id: string;
-            /** @description Empty for list responses; populated by `GET /api/v1/bank-statements/:id`. */
-            lines: components["schemas"]["BankStatementLineResponse"][];
+            line_count: number;
             opening_balance: string;
             /** Format: date */
             statement_date: string;
@@ -1791,7 +1797,6 @@ export interface components {
         BuildingClass: "A" | "B" | "C";
         CallbackItem: {
             Name: string;
-            /** @description JSON value — string, number, or null depending on the field */
             Value: Record<string, never> | null;
         };
         CallbackMetadata: {
@@ -1805,10 +1810,7 @@ export interface components {
             old_password: string;
         };
         ChangePlanDto: {
-            /**
-             * Format: int32
-             * @description Admin-only: override the plan price
-             */
+            /** Format: int32 */
             custom_price?: number | null;
             mpesa_ref?: string | null;
             plan_slug: string;
@@ -1835,10 +1837,7 @@ export interface components {
         };
         CreateAgencyDto: {
             name: string;
-            /**
-             * @description Lowercase, hyphen-separated, e.g. "acme-realty".
-             *     Must be unique; becomes both the URL slug and the Postgres schema prefix.
-             */
+            /** @description Lowercase, hyphen-separated, e.g. "acme-realty". */
             slug: string;
         };
         CreateAgreementDto: {
@@ -1887,10 +1886,7 @@ export interface components {
             due_date: string;
             line_items: components["schemas"]["InvoiceLineItemDto"][];
             notes?: string | null;
-            /**
-             * Format: uuid
-             * @description Owner UUID — links the invoice to a tax obligation for MRI purposes.
-             */
+            /** Format: uuid */
             owner_id?: string | null;
             /** Format: uuid */
             property_id: string;
@@ -1997,6 +1993,8 @@ export interface components {
             name: string;
             /** Format: int32 */
             quantity: number;
+            /** @description Optional category label, e.g. `"studio"`, `"1br"`, `"penthouse"`. */
+            unit_type?: string | null;
         };
         CreateVendorDto: {
             contact_name?: string | null;
@@ -2086,8 +2084,6 @@ export interface components {
             /** Format: date-time */
             created_at: string;
             /** Format: uuid */
-            created_by: string;
-            /** Format: uuid */
             id: string;
             method: components["schemas"]["DisbursementMethod"];
             notes?: string | null;
@@ -2147,12 +2143,10 @@ export interface components {
             /** Format: uuid */
             unit_id?: string | null;
             /** Format: uuid */
-            uploaded_by: string;
-            /** Format: uuid */
             work_order_id?: string | null;
         };
         /** @enum {string} */
-        DocumentType: "lease_agreement" | "noc" | "inspection_form" | "utility_bill" | "receipt" | "id_document" | "photo" | "other";
+        DocumentType: "lease_agreement" | "rental_agreement" | "tenancy_agreement" | "sublease_agreement" | "addendum" | "amendment" | "termination_notice" | "eviction_notice" | "noc" | "occupancy_certificate" | "completion_certificate" | "fire_safety_certificate" | "structural_stability_certificate" | "inspection_form" | "inspection_report" | "condition_report" | "move_in_checklist" | "move_out_checklist" | "maintenance_inspection" | "safety_inspection" | "utility_bill" | "receipt" | "invoice" | "payment_proof" | "deposit_receipt" | "rent_receipt" | "security_deposit_record" | "ledger_statement" | "id_document" | "passport" | "national_id" | "driver_license" | "proof_of_address" | "employment_letter" | "bank_statement" | "credit_report" | "title_deed" | "survey_plan" | "site_plan" | "floor_plan" | "architectural_drawing" | "structural_drawing" | "building_permit" | "renovation_approval" | "notice_to_tenant" | "notice_to_owner" | "warning_letter" | "complaint_form" | "feedback_form" | "work_order" | "maintenance_request" | "service_report" | "vendor_contract" | "service_agreement" | "photo" | "video" | "panorama" | "blueprint" | "insurance_policy" | "warranty_document" | "manual" | "guide" | "checklist" | "form" | "template" | "other";
         ErrorResponse: {
             error: string;
             message: string;
@@ -2165,7 +2159,6 @@ export interface components {
             service: components["schemas"]["ServiceInfo"];
             status: string;
         };
-        /** @description Import a bank statement with all its transaction lines. */
         ImportStatementDto: {
             account_number: string;
             bank_name: string;
@@ -2175,9 +2168,7 @@ export interface components {
             /** Format: date */
             statement_date: string;
         };
-        /** @description A single line in an imported bank statement. */
         ImportStatementLineDto: {
-            /** @description Positive = credit / money in.  Negative = debit / money out. */
             amount: string;
             description: string;
             reference?: string | null;
@@ -2185,7 +2176,6 @@ export interface components {
             value_date: string;
         };
         InitiatePaymentDto: {
-            /** @description Safaricom phone number, e.g. `"254712345678"` */
             phone_number: string;
             plan_slug: string;
         };
@@ -2194,6 +2184,12 @@ export interface components {
             message: string;
         };
         InspectionItem: {
+            area: string;
+            condition: string;
+            notes?: string | null;
+            photo_urls: string[];
+        };
+        InspectionItemResponse: {
             area: string;
             condition: string;
             notes?: string | null;
@@ -2209,11 +2205,9 @@ export interface components {
             /** Format: date-time */
             created_at: string;
             /** Format: uuid */
-            created_by: string;
-            /** Format: uuid */
             id: string;
             inspection_type: components["schemas"]["InspectionType"];
-            items: components["schemas"]["InspectionItem"][];
+            items: components["schemas"]["InspectionItemResponse"][];
             /** Format: uuid */
             property_id: string;
             /** Format: date-time */
@@ -2267,24 +2261,17 @@ export interface components {
             /** Format: uuid */
             user_id: string;
         };
-        InvoiceLineItem: {
+        InvoiceLineItemDto: {
             description: string;
-            /** @description e.g. "rent" | "management_fee" | "utility" | "deposit" | "late_fee" */
+            line_type?: string | null;
+            quantity: string;
+            unit_price_kes: string;
+        };
+        InvoiceLineItemResponse: {
+            description: string;
             line_type?: string | null;
             quantity: string;
             total_kes: string;
-            unit_price_kes: string;
-        };
-        InvoiceLineItemDto: {
-            description: string;
-            /**
-             * @description Optional line classification used for tax computation.
-             *     Accepted values: `"rent"` | `"management_fee"` | `"utility"` |
-             *                      `"deposit"` | `"late_fee"` | `"other"`
-             *     Defaults to `None` when omitted (treated as non-tax line).
-             */
-            line_type?: string | null;
-            quantity: string;
             unit_price_kes: string;
         };
         InvoiceResponse: {
@@ -2294,14 +2281,12 @@ export interface components {
             agreement_id?: string | null;
             /** Format: date-time */
             created_at: string;
-            /** Format: uuid */
-            created_by: string;
             /** Format: date */
             due_date: string;
             /** Format: uuid */
             id: string;
             invoice_number: string;
-            line_items: components["schemas"]["InvoiceLineItem"][];
+            line_items: components["schemas"]["InvoiceLineItemResponse"][];
             notes?: string | null;
             /** Format: uuid */
             owner_id?: string | null;
@@ -2401,31 +2386,6 @@ export interface components {
             property_id?: string | null;
             status?: null | components["schemas"]["PaymentClaimStatus"];
         };
-        ListDisbursementsParams: {
-            /** Format: int64 */
-            limit?: number;
-            /** Format: int64 */
-            offset?: number;
-            /** Format: uuid */
-            owner_id?: string | null;
-            /** Format: uuid */
-            property_id?: string | null;
-            status?: null | components["schemas"]["DisbursementStatus"];
-        };
-        ListInspectionsParams: {
-            /** Format: uuid */
-            agreement_id?: string | null;
-            inspection_type?: null | components["schemas"]["InspectionType"];
-            /** Format: int64 */
-            limit?: number;
-            /** Format: int64 */
-            offset?: number;
-            /** Format: uuid */
-            property_id?: string | null;
-            status?: null | components["schemas"]["InspectionStatus"];
-            /** Format: uuid */
-            unit_id?: string | null;
-        };
         ListLedgerParams: {
             /** Format: int64 */
             limit?: number | null;
@@ -2500,7 +2460,6 @@ export interface components {
             portal: components["schemas"]["PortalType"];
             token_type: string;
         };
-        /** @description Match a statement line to an existing posted journal entry. */
         MatchLineDto: {
             /** Format: uuid */
             journal_entry_id: string;
@@ -2525,8 +2484,6 @@ export interface components {
             /** Format: date-time */
             read_at: string;
             reading_value: string;
-            /** Format: uuid */
-            recorded_by: string;
         };
         /**
          * @description utility_meters.meter_type
@@ -2592,8 +2549,6 @@ export interface components {
             /** Format: uuid */
             reviewed_by?: string | null;
             status: components["schemas"]["PaymentClaimStatus"];
-            /** Format: uuid */
-            submitted_by: string;
             /** Format: date-time */
             updated_at: string;
         };
@@ -2602,6 +2557,20 @@ export interface components {
          * @enum {string}
          */
         PaymentClaimStatus: "pendingreview" | "approved" | "rejected";
+        PaymentMethod: {
+            /** @description e.g. bank name or M-Pesa paybill name. */
+            account_name?: string | null;
+            /** @description e.g. M-Pesa paybill number or bank account number. */
+            account_number?: string | null;
+            /** @description Free-text instructions printed on rent statements (e.g. "Use unit number as reference"). */
+            instructions?: string | null;
+            method: components["schemas"]["PaymentMethodKind"];
+        };
+        /**
+         * @description Accepted method of rent / service-charge payment for this property.
+         * @enum {string}
+         */
+        PaymentMethodKind: "mpesa" | "bank" | "cash";
         /**
          * @description payment_claims.method_type
          * @enum {string}
@@ -2611,7 +2580,6 @@ export interface components {
             description?: string | null;
             /** Format: uuid */
             id: string;
-            /** @description Arbitrary JSON metadata blob */
             metadata: Record<string, never> | null;
             name: string;
             /** Format: int32 */
@@ -2702,10 +2670,37 @@ export interface components {
             name: string;
             url: string;
         };
-        PropertyMaintenanceConfig: {
-            work_order_prefix: string;
-            /** Format: int32 */
-            work_order_seq: number;
+        PropertyDocumentResponse: {
+            document_type: string;
+            name: string;
+            url: string;
+        };
+        /** @description All per-property policy configuration that agents/owners can customise. */
+        PropertyPolicies: {
+            /** @description Agent management fee as a percentage of collected rent (2.5–10 %). */
+            agent_commission_percent?: string | null;
+            /**
+             * Format: int32
+             * @description How many months of rent the deposit equals (typically 1–3).
+             */
+            deposit_months?: number | null;
+            /**
+             * Format: int32
+             * @description Maximum days within which deposit must be refunded after move-out.
+             */
+            deposit_refund_days?: number | null;
+            /**
+             * Format: int32
+             * @description Number of days after the due date before a late fee is applied.
+             */
+            late_fee_grace_days?: number | null;
+            /** @description "flat" or "percent". */
+            late_fee_type?: string | null;
+            /** @description Late-fee amount (KES if flat, percentage if percent). */
+            late_fee_value?: string | null;
+            /** @description Accepted rent payment methods for this property. */
+            payment_methods?: components["schemas"]["PaymentMethod"][];
+            service_charges?: null | components["schemas"]["ServiceCharges"];
         };
         PropertyResponse: {
             address: string;
@@ -2716,16 +2711,32 @@ export interface components {
             country_code: string;
             /** Format: date-time */
             created_at: string;
-            /** Format: uuid */
-            created_by: string;
-            documents: components["schemas"]["PropertyDocument"][];
+            documents: components["schemas"]["PropertyDocumentResponse"][];
             /** Format: uuid */
             id: string;
-            maintenance: components["schemas"]["PropertyMaintenanceConfig"];
             name: string;
             photos: string[];
+            policies?: null | components["schemas"]["PropertyPolicies"];
             property_type: components["schemas"]["PropertyType"];
-            unit_types: components["schemas"]["UnitType"][];
+            unit_types: components["schemas"]["UnitTypeResponse"][];
+            /** Format: date-time */
+            updated_at: string;
+            work_order_prefix: string;
+        };
+        PropertySummaryResponse: {
+            address: string;
+            /** Format: uuid */
+            agency_id: string;
+            city: string;
+            country_code: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            id: string;
+            name: string;
+            property_type: components["schemas"]["PropertyType"];
+            /** @description Number of configured unit type templates (not individual units). */
+            unit_type_count: number;
             /** Format: date-time */
             updated_at: string;
         };
@@ -2818,6 +2829,20 @@ export interface components {
             uptime_seconds: number;
             websocket_channels: number;
         };
+        /** @description Service charges collected from tenants for shared costs in multi-unit properties. */
+        ServiceCharges: {
+            /** @description Electricity for common areas — split equally across units (KES total). */
+            electricity_common_kes: string;
+            enabled: boolean;
+            /** @description Monthly garbage/waste collection fee per unit (KES). */
+            garbage_fee_kes: string;
+            /** @description Any other fixed fees, e.g. `[{"name": "Parking", "amount": 500}]`. */
+            other_fees?: unknown[];
+            /** @description Monthly fee per unit for security (KES). */
+            security_fee_kes: string;
+            /** @description Monthly water charge per unit (KES). */
+            water_rate_per_unit: string;
+        };
         ServiceInfo: {
             name: string;
             /** Format: int32 */
@@ -2829,7 +2854,6 @@ export interface components {
             expires_at?: string | null;
             feature_key: string;
             reason?: string | null;
-            /** @description `"true"`, `"false"`, or a custom string value */
             value: string;
         };
         /** @description Staff login — requires agency_slug. */
@@ -2953,7 +2977,7 @@ export interface components {
          * @enum {string}
          */
         UnitStatus: "vacant" | "occupied" | "maintenance" | "reserved" | "inactive";
-        UnitType: {
+        UnitTypeResponse: {
             base_deposit?: string | null;
             base_rent?: string | null;
             /** Format: int32 */
@@ -2965,6 +2989,7 @@ export interface components {
             name: string;
             /** Format: int32 */
             quantity: number;
+            unit_type?: string | null;
         };
         /**
          * @description Body for `POST /api/v1/admin/agencies/:agency_id/permissions/model`.
@@ -3012,6 +3037,7 @@ export interface components {
             address?: string | null;
             city?: string | null;
             name?: string | null;
+            policies?: null | components["schemas"]["PropertyPolicies"];
             work_order_prefix?: string | null;
         };
         /**
@@ -3087,13 +3113,8 @@ export interface components {
         };
         UploadResponse: {
             content_type: string;
-            /**
-             * @description Canonical S3 object key — store this in the referencing table
-             *     (e.g. `payment_claims.proof_key`).
-             */
             key: string;
             size_bytes: number;
-            /** @description 15-minute presigned GET URL for immediate client download. */
             url: string;
         };
         UtilityBillResponse: {
@@ -3189,6 +3210,14 @@ export interface components {
             size_bytes: number;
             url: string;
         };
+        WorkOrderAttachmentResponse: {
+            key: string;
+            mime: string;
+            name: string;
+            /** Format: int64 */
+            size_bytes: number;
+            url: string;
+        };
         /** @enum {string} */
         WorkOrderCategory: "plumbing" | "electrical" | "structural" | "hvac" | "appliance" | "painting" | "cleaning" | "security" | "landscaping" | "pest_control" | "general";
         /**
@@ -3204,7 +3233,7 @@ export interface components {
             assigned_caretaker_id?: string | null;
             /** Format: uuid */
             assigned_to?: string | null;
-            attachments: components["schemas"]["WorkOrderAttachment"][];
+            attachments: components["schemas"]["WorkOrderAttachmentResponse"][];
             category: components["schemas"]["WorkOrderCategory"];
             code: string;
             /** Format: date-time */
@@ -3518,7 +3547,7 @@ export interface operations {
             };
         };
     };
-    update_auth_model: {
+    publish_auth_model: {
         parameters: {
             query?: never;
             header?: never;
@@ -3554,7 +3583,7 @@ export interface operations {
             };
         };
     };
-    write_permission_tuple: {
+    grant_permission_tuple: {
         parameters: {
             query?: never;
             header?: never;
@@ -3597,7 +3626,7 @@ export interface operations {
             };
         };
     };
-    delete_permission_tuple: {
+    revoke_permission_tuple: {
         parameters: {
             query?: never;
             header?: never;
@@ -4140,11 +4169,8 @@ export interface operations {
     occupancy_trends: {
         parameters: {
             query: {
-                /** @description Inclusive start date, e.g. `2025-01-01`. */
                 from: string;
-                /** @description Inclusive end date, e.g. `2025-12-31`. */
                 to: string;
-                /** @description Optionally filter to a single property. */
                 property_id?: string | null;
             };
             header?: never;
@@ -4174,11 +4200,8 @@ export interface operations {
     portfolio_analytics: {
         parameters: {
             query: {
-                /** @description Inclusive start date, e.g. `2025-01-01`. */
                 from: string;
-                /** @description Inclusive end date, e.g. `2025-12-31`. */
                 to: string;
-                /** @description Optionally filter to a single property. */
                 property_id?: string | null;
             };
             header?: never;
@@ -4226,11 +4249,8 @@ export interface operations {
     revenue_report: {
         parameters: {
             query: {
-                /** @description Inclusive start date, e.g. `2025-01-01`. */
                 from: string;
-                /** @description Inclusive end date, e.g. `2025-12-31`. */
                 to: string;
-                /** @description Optionally filter to a single property. */
                 property_id?: string | null;
             };
             header?: never;
@@ -4450,7 +4470,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["BankStatementResponse"][];
+                    "application/json": components["schemas"]["BankStatementSummaryResponse"][];
                 };
             };
             /** @description Unauthorised */
@@ -5067,7 +5087,6 @@ export interface operations {
     tenant_churn: {
         parameters: {
             query?: {
-                /** @description Surface leases expiring within this many days. Default 90. */
                 horizon_days?: number | null;
             };
             header?: never;
@@ -5098,7 +5117,6 @@ export interface operations {
         parameters: {
             query?: {
                 property_id?: string | null;
-                /** @description Number of months to forecast (1–24). Default 6. */
                 horizon_months?: number | null;
             };
             header?: never;
@@ -5128,7 +5146,6 @@ export interface operations {
     maintenance_alerts: {
         parameters: {
             query?: {
-                /** @description Minimum historical work orders required to surface an alert. Default 2. */
                 min_historical_count?: number | null;
             };
             header?: never;
@@ -6436,7 +6453,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PropertyResponse"][];
+                    "application/json": components["schemas"]["PropertySummaryResponse"][];
                 };
             };
             /** @description Missing or invalid JWT */

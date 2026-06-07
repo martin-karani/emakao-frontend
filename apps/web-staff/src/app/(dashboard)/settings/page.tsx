@@ -169,10 +169,10 @@ export default function SettingsPage() {
             <div className="grid gap-2">
               <Label htmlFor="sms_provider">Default SMS Provider</Label>
               <Select 
-                value={formData.communication.sms_provider} 
+                value={formData.communication.sms_provider || ""} 
                 onValueChange={(v) => setFormData({ 
                   ...formData, 
-                  communication: { ...formData.communication, sms_provider: v } 
+                  communication: { ...formData.communication, sms_provider: v ?? "" } 
                 })}
               >
                 <SelectTrigger id="sms_provider">
@@ -193,10 +193,10 @@ export default function SettingsPage() {
             <div className="grid gap-2">
               <Label htmlFor="email_provider">Default Email Provider</Label>
               <Select 
-                value={formData.communication.email_provider} 
+                value={formData.communication.email_provider || ""} 
                 onValueChange={(v) => setFormData({ 
                   ...formData, 
-                  communication: { ...formData.communication, email_provider: v } 
+                  communication: { ...formData.communication, email_provider: v ?? "" } 
                 })}
               >
                 <SelectTrigger id="email_provider">

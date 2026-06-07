@@ -21,6 +21,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@emakao/api-client";
 import type {
   BankStatement,
+  BankStatementSummary,
   BankStatementLine,
   ReconciliationReport,
 } from "@emakao/api-types";
@@ -35,7 +36,7 @@ export function useBankStatements(
 ) {
   return useQuery({
     queryKey: ["bank-statements", options],
-    queryFn: async (): Promise<BankStatement[]> => {
+    queryFn: async (): Promise<BankStatementSummary[]> => {
       const { data, error } = await apiClient.GET("/api/v1/bank-statements", {
         params: {
           query: {
@@ -66,7 +67,7 @@ export function useBankStatement(id: string) {
         { params: { path: { id } } }
       );
       if (error) throw new Error("Failed to fetch bank statement");
-      return data;
+      return data as BankStatement;
     },
     enabled: !!id,
   });
@@ -88,7 +89,7 @@ export function useReconciliationReport(statementId: string) {
         { params: { path: { id: statementId } } }
       );
       if (error) throw new Error("Failed to fetch reconciliation report");
-      return data;
+      return data as ReconciliationReport;
     },
     enabled: !!statementId,
   });

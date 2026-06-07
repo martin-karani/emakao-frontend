@@ -39,6 +39,8 @@ export const unitSchema = z.object({
 export const unitTypeSchema = z.object({
   id: z.string().uuid().optional(),
   name: z.string().min(1, "Type name is required"),
+  /** Free-form category, e.g. "studio", "1br", "penthouse". */
+  unit_type: z.string().optional().nullable(),
   bedrooms: z.number().int().min(0),
   bathrooms: z.number().int().min(0),
   base_rent: z.number().min(0).optional(),
@@ -73,7 +75,7 @@ export const propertySchema = z.object({
       z.object({
         name: z.string().min(1),
         url: z.string(),
-        document_type: z.string().min(1),
+        document_type: z.string().min(1).optional(),
       }),
     )
     .default([]),

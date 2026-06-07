@@ -2,8 +2,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@emakao/api-client";
 import type {
   Property,
+  PropertySummary,
   PropertyType,
   CreatePropertyDto,
+  UpdatePropertyDto,
 } from "@emakao/api-types";
 
 interface UsePropertiesOptions {
@@ -15,7 +17,7 @@ interface UsePropertiesOptions {
 export function useProperties(options: UsePropertiesOptions = {}) {
   return useQuery({
     queryKey: ["properties", options],
-    queryFn: async (): Promise<Property[]> => {
+    queryFn: async (): Promise<PropertySummary[]> => {
       const { data, error } = await apiClient.GET("/api/v1/properties", {
         params: {
           query: {
@@ -81,12 +83,7 @@ export function useUpdateProperty() {
       dto,
     }: {
       id: string;
-      dto: {
-        name?: string;
-        address?: string;
-        city?: string;
-        work_order_prefix?: string;
-      };
+      dto: UpdatePropertyDto;
     }): Promise<Property> => {
       const { data, error } = await apiClient.PUT("/api/v1/properties/{id}", {
         params: { path: { id } },
@@ -116,11 +113,11 @@ export function useDeleteProperty() {
     },
     onMutate: async (deletedId) => {
       await queryClient.cancelQueries({ queryKey: ["properties"] });
-      const snapshot = queryClient.getQueriesData<Property[]>({
+      const snapshot = queryClient.getQueriesData<PropertySummary[]>({
         queryKey: ["properties"],
       });
 
-      queryClient.setQueriesData<Property[]>(
+      queryClient.setQueriesData<PropertySummary[]>(
         { queryKey: ["properties"] },
         (old) => old?.filter((p) => p.id !== deletedId)
       );

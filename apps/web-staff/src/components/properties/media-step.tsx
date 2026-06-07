@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useUpload } from "@/hooks/use-upload";
 import type { PropertyFormValues } from "@/lib/schemas/property";
+import type { DocumentType } from "@emakao/api-types";
 
 interface MediaStepProps {
   onNext: () => void;
@@ -172,20 +173,18 @@ export function MediaStep({
                     try {
                       const res = await uploadDocument.mutateAsync({
                         file,
-                        documentType: "Agreement", // Default
+                        documentType: "lease_agreement" as DocumentType, // Default
                       });
                       setKeyToUrl((prev) => ({
                         ...prev,
-                        [res.s3_key]: res.url,
+                        [res.id]: res.download_url,
                       }));
-                      setValue("documents", [
-                        ...documents,
-                        {
-                          name: file.name,
-                          url: res.s3_key,
-                          document_type: "Agreement",
-                        },
-                      ]);
+                      const newDocument = {
+                        name: res.file_name || file.name || "Untitled Document",
+                        url: res.download_url || "",
+                        document_type: res.document_type || "lease_agreement",
+                      };
+                      setValue("documents", [...documents, newDocument]);
                     } catch (err) {
                       console.error("Document upload failed", err);
                     }

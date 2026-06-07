@@ -20,7 +20,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import Link from "next/link";
-import { type Property } from "@emakao/api-types";
+import { type PropertySummary } from "@emakao/api-types";
 import type { WorkspaceMode } from "@/hooks";
 
 /**
@@ -35,7 +35,7 @@ export function WorkspaceSwitcher({
   onSelectAgencyWorkspace,
   onSelectPropertyWorkspace,
 }: {
-  properties: Property[];
+  properties: PropertySummary[];
   agencyName?: string;
   isLoading?: boolean;
   workspaceMode: WorkspaceMode;

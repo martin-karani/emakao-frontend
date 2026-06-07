@@ -14,6 +14,7 @@ import type { components } from "./schema";
 
 // ── Properties ────────────────────────────────────────────────────────────────
 export type Property = components["schemas"]["PropertyResponse"];
+export type PropertySummary = components["schemas"]["PropertySummaryResponse"];
 export type PropertyType = components["schemas"]["PropertyType"];
 export type CreatePropertyDto = components["schemas"]["CreatePropertyDto"];
 export type UpdatePropertyDto = components["schemas"]["UpdatePropertyDto"];
@@ -27,10 +28,11 @@ export type CreateAgreementDto = components["schemas"]["CreateAgreementDto"];
 // ── Invoices ──────────────────────────────────────────────────────────────────
 export type Invoice = components["schemas"]["InvoiceResponse"];
 export type InvoiceStatus = components["schemas"]["InvoiceStatus"];
-export type InvoiceLineItem = components["schemas"]["InvoiceLineItem"];
+export type InvoiceLineItem = components["schemas"]["InvoiceLineItemResponse"];
 
 // ── Bank statements & reconciliation ─────────────────────────────────────────
 export type BankStatement = components["schemas"]["BankStatementResponse"];
+export type BankStatementSummary = components["schemas"]["BankStatementSummaryResponse"];
 export type BankStatementLine =
   components["schemas"]["BankStatementLineResponse"];
 export type ReconciliationReport =
@@ -77,6 +79,7 @@ export type UnitStatus =
 export interface Unit {
   id: string;
   property_id: string;
+  unit_type_id: string | null;
   parent_unit_id: string | null;
   unit_number: string;
   floor: number | null;
@@ -146,6 +149,9 @@ export type PropertyConfig =
       program_id: string;
       ami_percentage: number;
     };
+
+// ── Documents ────────────────────────────────────────────────────────────────
+export type DocumentType = components["schemas"]["DocumentType"];
 
 // ── Full bundle (advanced use: narrowing, type guards, etc.) ──────────────────
 export type { components, paths } from "./schema";

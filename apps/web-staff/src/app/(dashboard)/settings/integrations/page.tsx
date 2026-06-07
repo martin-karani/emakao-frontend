@@ -233,7 +233,7 @@ export default function IntegrationsPage() {
     const initialData: Record<string, string> = {};
     provider.fields.forEach((f) => {
       if (f.section === "settings") {
-        initialData[f.key] = active?.settings?.[f.key] || "";
+        initialData[f.key] = String(active?.settings?.[f.key] || "");
       } else {
         // Credentials are never returned from API
         initialData[f.key] = "";

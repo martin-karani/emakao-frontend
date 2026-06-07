@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import type { Property } from "@emakao/api-types";
+import type { PropertySummary } from "@emakao/api-types";
 
 export type WorkspaceMode = "agency" | "property";
 
@@ -41,7 +41,7 @@ function getStoredWorkspaceSnapshot() {
   return `${readWorkspaceMode()}::${readPropertyId() ?? ""}`;
 }
 
-export function useWorkspace(properties: Property[]) {
+export function useWorkspace(properties: PropertySummary[]) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();

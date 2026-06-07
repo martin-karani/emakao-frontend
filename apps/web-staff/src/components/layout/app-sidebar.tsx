@@ -11,6 +11,7 @@ import {
   Blocks,
   LifeBuoy,
   Send,
+  FileText,
 } from "lucide-react";
 
 import { NavMain } from "@/components/layout/nav-main";
@@ -84,24 +85,14 @@ const AGENCY_NAV = [
 ];
 
 const SECONDARY_NAV = [
-  {
-    title: "Integrations",
-    url: "/settings/integrations",
-    icon: Blocks,
-  },
-  {
-    title: "Support",
-    url: "/support",
-    icon: LifeBuoy,
-  },
-  {
-    title: "Feedback",
-    url: "/feedback",
-    icon: Send,
-  },
+  { title: "Integrations", url: "/settings/integrations", icon: Blocks },
+  { title: "Support", url: "/support", icon: LifeBuoy },
+  { title: "Feedback", url: "/feedback", icon: Send },
 ];
 
-const PROPERTY_NAV = [
+// `:id` is replaced at runtime with the real activePropertyId.
+// All sub-items use real Next.js routes — no more ?tab= query params.
+const PROPERTY_NAV_BASE = [
   {
     title: "Overview",
     url: "/dashboard",
@@ -109,17 +100,18 @@ const PROPERTY_NAV = [
     isActive: true,
     items: [
       { title: "Summary", url: "/dashboard" },
-      { title: "Performance", url: "/dashboard" },
+      { title: "Analytics", url: "/dashboard/analytics" },
     ],
   },
   {
-    title: "Operations",
-    url: "/properties",
+    title: "Property",
+    url: "/properties/:id",
     icon: Building2,
     items: [
-      { title: "Property Profile", url: "/properties" },
-      { title: "Units", url: "/properties/units" },
-      { title: "Leases", url: "/leases" },
+      { title: "Overview", url: "/properties/:id" },
+      { title: "Units", url: "/properties/:id/units" },
+      { title: "Leases", url: "/properties/:id/leases" },
+      { title: "Team", url: "/properties/:id/team" },
     ],
   },
   {
@@ -143,14 +135,21 @@ const PROPERTY_NAV = [
     ],
   },
   {
-    title: "Agency",
-    url: "/settings",
+    title: "Documents",
+    url: "/leases",
+    icon: FileText,
+    items: [
+      { title: "All Leases", url: "/leases" },
+      { title: "Renewals", url: "/leases/renewals" },
+      { title: "Move-outs", url: "/leases/move-outs" },
+    ],
+  },
+  {
+    title: "Settings",
+    url: "/properties/:id/settings",
     icon: Settings2,
     items: [
-      { title: "Agency Overview", url: "/dashboard" },
-      { title: "Settings", url: "/settings" },
-      { title: "Notifications", url: "/properties" },
-      { title: "Billing", url: "/properties" },
+      { title: "Property Settings", url: "/properties/:id/settings" },
     ],
   },
 ];
@@ -196,29 +195,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const navItems = React.useMemo(() => {
     if (isAgencyWorkspace) return AGENCY_NAV;
 
-    return PROPERTY_NAV.map((item) => {
-      if (item.title === "Agency") {
-        return {
-          ...item,
-          items: item.items?.map((sub) => {
-            if (sub.title === "Notifications") {
-              return {
-                ...sub,
-                url: `/properties/${activePropertyId}?tab=notifications`,
-              };
-            }
-            if (sub.title === "Billing") {
-              return {
-                ...sub,
-                url: `/properties/${activePropertyId}?tab=billing`,
-              };
-            }
-            return sub;
-          }),
-        };
-      }
-      return item;
-    });
+    // Replace every `:id` placeholder with the real activePropertyId.
+    return PROPERTY_NAV_BASE.map((item) => ({
+      ...item,
+      url: item.url.replace(":id", activePropertyId ?? ""),
+      items: item.items?.map((sub) => ({
+        ...sub,
+        url: sub.url.replace(":id", activePropertyId ?? ""),
+      })),
+    }));
   }, [isAgencyWorkspace, activePropertyId]);
 
   const navLabel = isAgencyWorkspace
@@ -227,7 +212,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   return (
     <Sidebar collapsible="icon" {...props}>
-      {/* Workspace switcher in the header */}
       <SidebarHeader>
         <WorkspaceSwitcher
           properties={properties ?? []}
@@ -238,6 +222,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           onSelectAgencyWorkspace={selectAgencyWorkspace}
           onSelectPropertyWorkspace={selectPropertyWorkspace}
         />
+
+        {!isAgencyWorkspace && activeProperty && (
+          <div className="mx-2 mb-1 flex items-center gap-2 rounded-md border border-primary/20 bg-primary/5 px-3 py-2">
+            <Building2 className="h-3.5 w-3.5 shrink-0 text-primary" />
+            <div className="min-w-0 flex-1 overflow-hidden">
+              <p className="truncate text-xs font-semibold text-primary leading-tight">
+                {activeProperty.name}
+              </p>
+              <p className="truncate text-[10px] text-muted-foreground capitalize">
+                {activeProperty.property_type?.replace(/_/g, " ") ?? "Property"}
+              </p>
+            </div>
+          </div>
+        )}
       </SidebarHeader>
 
       <SidebarContent>
@@ -256,7 +254,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         )}
       </SidebarContent>
 
-      {/* Logged-in staff user menu */}
       <SidebarFooter>
         <NavUser user={mappedUser} />
       </SidebarFooter>

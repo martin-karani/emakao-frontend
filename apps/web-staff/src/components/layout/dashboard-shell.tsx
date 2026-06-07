@@ -37,7 +37,7 @@ import Link from "next/link";
 // ---------------------------------------------------------------------------
 const SEGMENT_LABELS: Record<string, string> = {
   dashboard: "Overview",
-  properties: "Units",
+  properties: "Properties",
   leases: "Leases & Tenants",
   maintenance: "Maintenance",
   finance: "Finance",
@@ -45,6 +45,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   settings: "Settings",
   new: "New",
   units: "Units",
+  team: "Team",
   tenants: "Tenants",
   renewals: "Renewals",
   "move-outs": "Move-outs",

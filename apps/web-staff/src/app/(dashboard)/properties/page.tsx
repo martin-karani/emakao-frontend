@@ -1,13 +1,15 @@
 // apps/web-staff/src/app/(dashboard)/properties/page.tsx
 //
-// Properties portfolio list.
-// Uses Button render prop (not asChild) matching the base-ui button API.
+// Agency mode    → portfolio table (unchanged)
+// Property mode  → redirect to /properties/[id] hub
 
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useProperties, useDeleteProperty } from "@/hooks/use-properties";
+import { useWorkspace } from "@/hooks";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -17,7 +19,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Trash2,
@@ -27,213 +28,145 @@ import {
   Loader2,
   ExternalLink,
 } from "lucide-react";
-import { useWorkspace } from "@/hooks";
-import type { Property } from "@emakao/api-types";
-
-interface UpdatedProperty extends Property {
-  maintenance: {
-    work_order_prefix: string;
-    work_order_seq: number;
-  };
-}
+import type { PropertySummary } from "@emakao/api-types";
 
 const PROPERTY_TYPE_LABELS: Record<string, string> = {
   residential: "Residential",
   multifamily: "Multifamily",
   commercial: "Commercial",
-  community: "Community",
-  student: "Student",
-  affordable_housing: "Affordable",
-  affordable: "Affordable",
+  community: "Community Assoc.",
+  student: "Student Housing",
+  affordable_housing: "Affordable Housing",
+  affordable: "Affordable Housing",
 };
-
-function getWorkOrderPrefix(property: unknown) {
-  return (property as UpdatedProperty)?.maintenance?.work_order_prefix;
-}
 
 export default function PropertiesPage() {
   const router = useRouter();
-  const { workspaceMode, activeProperty } = useWorkspace([]);
   const { data: properties, isLoading } = useProperties();
+  const { workspaceMode, activeProperty, buildWorkspaceUrl } = useWorkspace(
+    properties ?? []
+  );
   const deleteMutation = useDeleteProperty();
 
-  if (isLoading) {
+  // ── Property-workspace mode → forward to the property detail hub ───────────
+  useEffect(() => {
+    if (!isLoading && workspaceMode === "property" && activeProperty) {
+      // Preserve the `?w=` param so workspace context is not lost.
+      router.replace(buildWorkspaceUrl(`/properties/${activeProperty.id}`));
+    }
+  }, [isLoading, workspaceMode, activeProperty, router, buildWorkspaceUrl]);
+
+  // Show a spinner while loading or while the redirect is pending.
+  if (isLoading || (workspaceMode === "property" && activeProperty)) {
     return (
-      <div className="flex items-center gap-2 text-sm text-muted-foreground p-8">
-        <Loader2 className="w-4 h-4 animate-spin" />
+      <div className="flex items-center gap-2 p-8 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" />
         Loading properties…
       </div>
     );
   }
 
-  // ── Property-workspace mode ────────────────────────────────────────────────
-  if (workspaceMode === "property" && activeProperty) {
-    return (
-      <div className="space-y-6 p-4 md:p-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight">
-              {activeProperty.name}
-            </h2>
-            <p className="text-muted-foreground">
-              Property Profile &amp; Details
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            nativeButton={false}
-            render={<Link href={`/properties/${activeProperty.id}`} />}
-          >
-            <Edit className="w-4 h-4 mr-2" />
-            Edit Profile
-          </Button>
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Basic Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-1 text-sm">
-                <div className="text-muted-foreground">Address:</div>
-                <div>{activeProperty.address}</div>
-                <div className="text-muted-foreground">City:</div>
-                <div>{activeProperty.city}</div>
-                <div className="text-muted-foreground">Type:</div>
-                <div>
-                  <Badge variant="secondary">
-                    {PROPERTY_TYPE_LABELS[activeProperty.property_type] ??
-                      activeProperty.property_type}
-                  </Badge>
-                </div>
-                <div className="text-muted-foreground">Work Order Prefix:</div>
-                <div>
-                  <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
-                    {getWorkOrderPrefix(activeProperty) ?? "Auto-generated"}
-                  </code>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Configuration</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <pre className="text-xs bg-muted p-3 rounded-md overflow-auto">
-                {JSON.stringify(activeProperty.config, null, 2)}
-              </pre>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Agency portfolio view ──────────────────────────────────────────────────
+  // ── Agency portfolio view ─────────────────────────────────────────────────
   return (
     <div className="space-y-6 p-4 md:p-8">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Building2 className="w-6 h-6" />
-            Portfolio
-          </h2>
-          <p className="text-muted-foreground">
-            Manage your agency&apos;s real estate portfolio.
+          <h1 className="text-2xl font-bold tracking-tight">Properties</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {properties?.length ?? 0} propert
+            {(properties?.length ?? 0) === 1 ? "y" : "ies"} in your portfolio
           </p>
         </div>
-        <Button nativeButton={false} render={<Link href="/properties/new" />}>
-          <Plus className="w-4 h-4 mr-2" />
+        <Button size="sm" render={<Link href="/properties/new" />}>
+          <Plus className="mr-1.5 h-4 w-4" />
           Add Property
         </Button>
       </div>
 
-      <div className="rounded-md border bg-white shadow-sm">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Property Name</TableHead>
-              <TableHead>Location</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {properties?.map((property) => (
-              <TableRow
-                key={property.id}
-                className="cursor-pointer hover:bg-muted/30"
-                onClick={() => router.push(`/properties/${property.id}`)}
-              >
-                <TableCell className="font-medium">{property.name}</TableCell>
-                <TableCell className="text-muted-foreground">
-                  {[property.address, property.city].filter(Boolean).join(", ")}
-                </TableCell>
-                <TableCell>
-                  <Badge variant="secondary">
-                    {PROPERTY_TYPE_LABELS[property.property_type] ??
-                      property.property_type}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  <div
-                    className="flex items-center justify-end gap-1"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      nativeButton={false}
-                      render={<Link href={`/properties/${property.id}`} />}
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        if (
-                          confirm(
-                            `Delete "${property.name}"? All units will also be removed.`,
-                          )
-                        ) {
-                          deleteMutation.mutate(property.id);
-                        }
-                      }}
-                      disabled={deleteMutation.isPending}
-                    >
-                      <Trash2 className="w-4 h-4 text-destructive" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-
-            {(!properties || properties.length === 0) && (
+      {/* Table */}
+      {!properties?.length ? (
+        <div className="rounded-lg border border-dashed p-12 text-center text-sm text-muted-foreground">
+          <Building2 className="mx-auto mb-3 h-8 w-8 opacity-30" />
+          No properties yet.{" "}
+          <Link href="/properties/new" className="text-primary underline">
+            Add your first property
+          </Link>
+          .
+        </div>
+      ) : (
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={4} className="h-36 text-center">
-                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                    <Building2 className="w-8 h-8 opacity-30" />
-                    <p className="text-sm">No properties yet.</p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      nativeButton={false}
-                      render={<Link href="/properties/new" />}
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add your first property
-                    </Button>
-                  </div>
-                </TableCell>
+                <TableHead>Name</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead className="hidden md:table-cell">Location</TableHead>
+                <TableHead className="hidden sm:table-cell">Units</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+            </TableHeader>
+            <TableBody>
+              {properties.map((p: PropertySummary) => (
+                <TableRow key={p.id}>
+                  <TableCell className="font-medium">{p.name}</TableCell>
+                  <TableCell>
+                    <Badge variant="secondary" className="text-xs">
+                      {PROPERTY_TYPE_LABELS[p.property_type] ?? p.property_type}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell text-muted-foreground text-sm">
+                    {p.city}
+                  </TableCell>
+                  <TableCell className="hidden sm:table-cell text-sm">
+                    {/* unit_count not always on summary */}—
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        title="Open details"
+                        render={<Link href={`/properties/${p.id}`} />}
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        title="Edit property"
+                        render={
+                          <Link href={`/properties/${p.id}/settings`} />
+                        }
+                      >
+                        <Edit className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        className="text-destructive hover:text-destructive"
+                        title="Delete property"
+                        disabled={deleteMutation.isPending}
+                        onClick={() => {
+                          if (
+                            confirm(
+                              `Delete "${p.name}"? This cannot be undone.`
+                            )
+                          ) {
+                            deleteMutation.mutate(p.id);
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
     </div>
   );
 }

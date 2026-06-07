@@ -1,18 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   useWorkOrders,
   useCreateWorkOrder,
-  useUpdateWorkOrder,
+  type WorkOrder,
   type WorkOrderStatus,
   type WorkOrderPriority,
   type WorkOrderCategory,
 } from "@/hooks/use-work-orders";
-import { useProperties, useUpdateProperty } from "@/hooks/use-properties";
+import { useProperties } from "@/hooks/use-properties";
 import { useUnits } from "@/hooks/use-units";
 import { useCaretakers } from "@/hooks/use-caretakers";
-import { useAuth } from "@/hooks/use-auth";
 import {
   SearchSelectDialog,
   type SearchResult,
@@ -25,7 +24,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -39,31 +37,24 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
-  Wrench,
-  Clock,
-  CheckCircle,
   Plus,
   Loader2,
-  AlertCircle,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  Wrench,
   Filter,
-  Settings2,
+  User,
+  Calendar,
+  Tag,
+  MoreHorizontal,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatShortDate } from "@/lib/date-format";
+import { WorkOrderSheet } from "@/components/maintenance/work-order-sheet";
+import { cn } from "@/lib/utils";
 
-const priorityColors: Record<string, string> = {
-  low: "bg-blue-100 text-blue-800 border-blue-200",
-  medium: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  high: "bg-orange-100 text-orange-800 border-orange-200",
-  emergency: "bg-red-100 text-red-800 border-red-200 font-bold",
-};
-
-const statusColors: Record<string, string> = {
-  open: "bg-gray-100 text-gray-800",
-  inprogress: "bg-blue-100 text-blue-800",
-  completed: "bg-green-100 text-green-800",
-  cancelled: "bg-red-100 text-red-800",
-};
+// ── Constants ─────────────────────────────────────────────────────────────────
 
 const CATEGORIES = [
   "plumbing",
@@ -79,42 +70,270 @@ const CATEGORIES = [
   "general",
 ];
 
+const STATUS_GROUPS: {
+  status: WorkOrderStatus;
+  label: string;
+  dotClass: string;
+  badgeClass: string;
+  headerClass: string;
+}[] = [
+  {
+    status: "open",
+    label: "Not Started",
+    dotClass: "bg-orange-400",
+    badgeClass:
+      "border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800 dark:bg-orange-950 dark:text-orange-300",
+    headerClass: "text-orange-700 dark:text-orange-400",
+  },
+  {
+    status: "inprogress",
+    label: "In Progress",
+    dotClass: "bg-indigo-400",
+    badgeClass:
+      "border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950 dark:text-indigo-300",
+    headerClass: "text-indigo-700 dark:text-indigo-400",
+  },
+  {
+    status: "completed",
+    label: "Done",
+    dotClass: "bg-emerald-400",
+    badgeClass:
+      "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300",
+    headerClass: "text-emerald-700 dark:text-emerald-400",
+  },
+  {
+    status: "cancelled",
+    label: "Cancelled",
+    dotClass: "bg-rose-400",
+    badgeClass:
+      "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300",
+    headerClass: "text-rose-700 dark:text-rose-400",
+  },
+];
+
+const PRIORITY_CONFIG: Record<string, { label: string; className: string }> = {
+  low: {
+    label: "Lowest",
+    className:
+      "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300",
+  },
+  medium: {
+    label: "Normal",
+    className:
+      "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300",
+  },
+  high: {
+    label: "Urgent",
+    className:
+      "border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800 dark:bg-orange-950 dark:text-orange-300",
+  },
+  emergency: {
+    label: "Emergency",
+    className:
+      "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300",
+  },
+};
+
+// ── WorkOrderRow ──────────────────────────────────────────────────────────────
+
+function WorkOrderRow({
+  order,
+  onClick,
+}: {
+  order: WorkOrder;
+  onClick: () => void;
+}) {
+  const priority = PRIORITY_CONFIG[order.priority] ?? PRIORITY_CONFIG.medium;
+
+  return (
+    <tr
+      onClick={onClick}
+      className="group border-b border-border/50 last:border-0 hover:bg-muted/40 cursor-pointer transition-colors"
+    >
+      {/* Checkbox col */}
+      <td className="py-2.5 pl-4 pr-2 w-8">
+        <div className="w-4 h-4 rounded border border-muted-foreground/30 group-hover:border-muted-foreground/60 transition-colors" />
+      </td>
+
+      {/* Title + code */}
+      <td className="py-2.5 pr-3 min-w-0 max-w-[260px]">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-sm font-medium truncate">{order.title}</span>
+        </div>
+        <span className="text-[10px] font-mono text-muted-foreground">
+          {order.code}
+        </span>
+      </td>
+
+      {/* Description */}
+      <td className="py-2.5 pr-4 hidden md:table-cell">
+        <p className="text-sm text-muted-foreground truncate max-w-[200px]">
+          {order.description || <span className="italic">No description</span>}
+        </p>
+      </td>
+
+      {/* Assignee */}
+      <td className="py-2.5 pr-4 hidden lg:table-cell w-28">
+        {order.assigned_caretaker_id ? (
+          <div className="flex items-center gap-1.5">
+            <div className="w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-[10px] font-medium text-indigo-700 dark:text-indigo-300">
+              <User className="w-3 h-3" />
+            </div>
+          </div>
+        ) : (
+          <span className="text-xs text-muted-foreground italic">—</span>
+        )}
+      </td>
+
+      {/* Category */}
+      <td className="py-2.5 pr-4 hidden xl:table-cell w-28">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Tag className="w-3 h-3" />
+          <span className="capitalize">{order.category.replace("_", " ")}</span>
+        </div>
+      </td>
+
+      {/* Date */}
+      <td className="py-2.5 pr-4 hidden lg:table-cell w-32">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Calendar className="w-3 h-3" />
+          {formatShortDate(order.created_at)}
+        </div>
+      </td>
+
+      {/* Priority */}
+      <td className="py-2.5 pr-4 w-24">
+        <Badge
+          variant="outline"
+          className={cn("text-[10px] h-5 font-medium", priority.className)}
+        >
+          {priority.label}
+        </Badge>
+      </td>
+
+      {/* Actions */}
+      <td className="py-2.5 pr-3 w-8">
+        <button
+          onClick={(e) => e.stopPropagation()}
+          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-muted"
+        >
+          <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
+        </button>
+      </td>
+    </tr>
+  );
+}
+
+// ── StatusGroup ───────────────────────────────────────────────────────────────
+
+function StatusGroup({
+  group,
+  orders,
+  onSelect,
+}: {
+  group: (typeof STATUS_GROUPS)[0];
+  orders: WorkOrder[];
+  onSelect: (o: WorkOrder) => void;
+}) {
+  const [collapsed, setCollapsed] = useState(false);
+
+  return (
+    <div className="rounded-xl border border-border overflow-hidden bg-card">
+      {/* Group header */}
+      <button
+        onClick={() => setCollapsed((c) => !c)}
+        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors text-left"
+      >
+        {collapsed ? (
+          <ChevronRight className="w-4 h-4 text-muted-foreground" />
+        ) : (
+          <ChevronDown className="w-4 h-4 text-muted-foreground" />
+        )}
+
+        <span
+          className={cn(
+            "flex items-center gap-2 text-sm font-semibold",
+            group.headerClass,
+          )}
+        >
+          <span className={cn("w-2.5 h-2.5 rounded-full", group.dotClass)} />
+          {group.label}
+        </span>
+
+        <Badge
+          variant="outline"
+          className={cn(
+            "ml-1 text-[10px] h-5 font-semibold tabular-nums min-w-[22px] justify-center",
+            group.badgeClass,
+          )}
+        >
+          {orders.length}
+        </Badge>
+      </button>
+
+      {/* Table */}
+      {!collapsed && (
+        <div className="border-t border-border">
+          {orders.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-6">
+              No {group.label.toLowerCase()} work orders
+            </p>
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border/50 bg-muted/30">
+                  <th className="py-2 pl-4 pr-2 w-8" />
+                  <th className="py-2 pr-3 text-left text-xs font-medium text-muted-foreground">
+                    Task Name
+                  </th>
+                  <th className="py-2 pr-4 text-left text-xs font-medium text-muted-foreground hidden md:table-cell">
+                    Description
+                  </th>
+                  <th className="py-2 pr-4 text-left text-xs font-medium text-muted-foreground hidden lg:table-cell w-28">
+                    Assignee
+                  </th>
+                  <th className="py-2 pr-4 text-left text-xs font-medium text-muted-foreground hidden xl:table-cell w-28">
+                    Category
+                  </th>
+                  <th className="py-2 pr-4 text-left text-xs font-medium text-muted-foreground hidden lg:table-cell w-32">
+                    Date
+                  </th>
+                  <th className="py-2 pr-4 text-left text-xs font-medium text-muted-foreground w-24">
+                    Priority
+                  </th>
+                  <th className="py-2 pr-3 w-8" />
+                </tr>
+              </thead>
+              <tbody>
+                {orders.map((order) => (
+                  <WorkOrderRow
+                    key={order.id}
+                    order={order}
+                    onClick={() => onSelect(order)}
+                  />
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────────
+
 export default function MaintenancePage() {
-  const { user } = useAuth();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<WorkOrder | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [filters, setFilters] = useState<{
     property_id?: string;
     status?: WorkOrderStatus;
   }>({});
 
   const { data: properties } = useProperties();
-  const { data: tickets, isLoading } = useWorkOrders(filters);
-
-  const selectedProperty = filters.property_id
-    ? properties?.find((p) => p.id === filters.property_id)
-    : null;
-
-  const [prefix, setPrefix] = useState("");
-
-  const updateProperty = useUpdateProperty();
-
-  const handleUpdatePrefix = async () => {
-    if (!selectedProperty || !prefix) return;
-    try {
-      await updateProperty.mutateAsync({
-        id: selectedProperty.id,
-        dto: { work_order_prefix: prefix.toUpperCase() },
-      });
-      toast.success("Maintenance prefix updated");
-      setIsSettingsOpen(false);
-    } catch (err) {
-      toast.error("Failed to update prefix");
-    }
-  };
-
-  const isAgentManager =
-    user?.role === "agent_manager" || user?.role === "admin";
+  const { data: tickets = [], isLoading } = useWorkOrders(filters);
 
   const searchProperties = async (q: string): Promise<SearchResult[]> => {
     const res = await fetch(
@@ -175,9 +394,7 @@ export default function MaintenancePage() {
   };
 
   const createMutation = useCreateWorkOrder();
-  const updateMutation = useUpdateWorkOrder();
 
-  // Form state
   const [newTicket, setNewTicket] = useState({
     property_id: "",
     unit_id: "",
@@ -189,20 +406,17 @@ export default function MaintenancePage() {
   });
 
   const { data: units } = useUnits(newTicket.property_id || undefined);
-  const { data: caretakers } = useCaretakers(
-    newTicket.property_id || undefined,
-  );
 
   const handleCreate = async () => {
     if (!newTicket.property_id || !newTicket.title) {
       toast.error("Property and Title are required");
       return;
     }
-
     try {
       await createMutation.mutateAsync({
         ...newTicket,
         unit_id: newTicket.unit_id || undefined,
+        caretaker_id: newTicket.caretaker_id || undefined,
         reporter_type: "staff",
       } as Parameters<typeof createMutation.mutateAsync>[0]);
       toast.success("Work order created successfully");
@@ -216,247 +430,140 @@ export default function MaintenancePage() {
         category: "general",
         priority: "medium",
       });
-    } catch (error) {
+    } catch {
       toast.error("Failed to create work order");
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex h-[400px] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
+  const handleSelectOrder = (order: WorkOrder) => {
+    setSelectedOrder(order);
+    setSheetOpen(true);
+  };
+
+  // Group tickets by status
+  const grouped = STATUS_GROUPS.map((g) => ({
+    ...g,
+    orders: tickets.filter((t) => t.status === g.status),
+  }));
+
+  const totalCount = tickets.length;
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6 min-h-0">
+      {/* ── Page header ── */}
+      <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Wrench className="h-6 w-6" />
-            Maintenance & Work Orders
+          <h1 className="text-xl font-semibold tracking-tight flex items-center gap-2">
+            <Wrench className="h-5 w-5 text-muted-foreground" />
+            Maintenance &amp; Work Orders
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm text-muted-foreground mt-0.5">
             Track, assign, and resolve property maintenance requests.
           </p>
         </div>
-        <Button onClick={() => setIsCreateOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Log Issue
+        <Button
+          size="sm"
+          onClick={() => setIsCreateOpen(true)}
+          className="gap-1.5"
+        >
+          <Plus className="h-4 w-4" />
+          Add Task
         </Button>
       </div>
 
-      <div className="flex items-center gap-4 flex-wrap">
-        <div className="flex items-center gap-2 bg-card border rounded-md px-3 py-1.5">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          <span className="text-xs font-medium border-r pr-2 mr-1">
-            Filters
+      {/* ── Filter bar ── */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-2 bg-card border rounded-lg px-3 py-1.5 text-sm shadow-sm">
+          <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="text-xs font-medium text-muted-foreground border-r pr-2 mr-1">
+            Filter
           </span>
+
           <SearchSelectDialog
             title="Filter by Property"
             placeholder="Search property name..."
             searchFn={searchProperties}
             onSelect={(p: unknown) => {
               const prop = p as { id: string };
-              setFilters({
-                ...filters,
-                property_id: prop.id,
-              });
+              setFilters({ ...filters, property_id: prop.id });
             }}
             trigger={
-              <Button variant="ghost" size="sm" className="h-7 text-xs px-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs px-2 gap-1"
+              >
                 {filters.property_id
                   ? properties?.find((p) => p.id === filters.property_id)
-                      ?.name || "Selected Property"
+                      ?.name || "Property"
                   : "All Properties"}
-                <Plus className="ml-1 h-3 w-3" />
               </Button>
             }
           />
-          {filters.property_id && (
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                onClick={() =>
-                  setFilters({ ...filters, property_id: undefined })
-                }
-              >
-                <Plus className="h-3 w-3 rotate-45" />
-              </Button>
 
-              {isAgentManager && (
-                <Dialog
-                  open={isSettingsOpen}
-                  onOpenChange={(open) => {
-                    setIsSettingsOpen(open);
-                    if (open && selectedProperty) {
-                      setPrefix(selectedProperty.work_order_prefix);
-                    }
-                  }}
-                >
-                  <DialogTrigger
-                    render={
-                      <Button variant="ghost" size="icon-xs">
-                        <Settings2 className="h-3.3 w-3.3 text-muted-foreground" />
-                      </Button>
-                    }
-                  />
-                  <DialogContent className="sm:max-w-[400px]">
-                    <DialogHeader>
-                      <DialogTitle>Maintenance Settings</DialogTitle>
-                      <DialogDescription>
-                        Configure maintenance settings for{" "}
-                        {selectedProperty?.name}.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="prefix">Work Order Prefix</Label>
-                        <Input
-                          id="prefix"
-                          value={prefix}
-                          onChange={(e) => setPrefix(e.target.value)}
-                          placeholder="e.g. AP"
-                        />
-                        <p className="text-[10px] text-muted-foreground">
-                          This prefix is used for all work orders in this
-                          property (e.g. {prefix}-1001).
-                        </p>
-                      </div>
-                    </div>
-                    <DialogFooter>
-                      <Button
-                        variant="outline"
-                        onClick={() => setIsSettingsOpen(false)}
-                      >
-                        Cancel
-                      </Button>
-                      <Button onClick={handleUpdatePrefix}>Save Changes</Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              )}
-            </div>
+          {filters.property_id && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground"
+              onClick={() => setFilters({ ...filters, property_id: undefined })}
+            >
+              <Plus className="h-3 w-3 rotate-45" />
+            </Button>
           )}
-          <Select
-            value={filters.status || "all"}
-            onValueChange={(v) =>
-              setFilters({
-                ...filters,
-                status: v === "all" ? undefined : (v as WorkOrderStatus),
-              })
-            }
-          >
-            <SelectTrigger className="h-7 border-none bg-transparent focus:ring-0 w-[120px] text-xs">
-              <SelectValue placeholder="All Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="open">Open</SelectItem>
-              <SelectItem value="inprogress">In Progress</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="cancelled">Cancelled</SelectItem>
-            </SelectContent>
-          </Select>
+        </div>
+
+        <div className="text-xs text-muted-foreground">
+          {isLoading ? (
+            <span className="flex items-center gap-1.5">
+              <Loader2 className="h-3 w-3 animate-spin" /> Loading...
+            </span>
+          ) : (
+            <span>
+              {totalCount} task{totalCount !== 1 ? "s" : ""}
+            </span>
+          )}
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {tickets?.map((ticket) => (
-          <div
-            key={ticket.id}
-            className="rounded-xl border bg-card text-card-foreground shadow-sm p-5 space-y-4 hover:border-primary/20 transition-colors"
-          >
-            <div className="flex justify-between items-start">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <Badge
-                    variant="outline"
-                    className={priorityColors[ticket.priority]}
-                  >
-                    {ticket.priority.toUpperCase()}
-                  </Badge>
-                  <span className="text-[10px] font-mono text-muted-foreground">
-                    {ticket.code}
-                  </span>
-                </div>
-                <h3 className="font-semibold leading-none tracking-tight pt-1">
-                  {ticket.title}
-                </h3>
-              </div>
-              <Badge
-                className={statusColors[ticket.status.replace("_", "")] || ""}
-              >
-                {ticket.status.replace("_", " ")}
-              </Badge>
-            </div>
+      {/* ── Content ── */}
+      {isLoading ? (
+        <div className="flex h-48 items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : totalCount === 0 ? (
+        <div className="flex flex-col items-center justify-center py-24 border-2 border-dashed rounded-xl bg-muted/20 text-center">
+          <CheckCircle2 className="w-10 h-10 text-emerald-500 mb-3" />
+          <h3 className="text-base font-semibold">
+            Everything&apos;s in order
+          </h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            No active maintenance requests match your filters.
+          </p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {grouped.map((group) => (
+            <StatusGroup
+              key={group.status}
+              group={group}
+              orders={group.orders}
+              onSelect={handleSelectOrder}
+            />
+          ))}
+        </div>
+      )}
 
-            <p className="text-sm text-muted-foreground line-clamp-2">
-              {ticket.description || "No description provided."}
-            </p>
+      {/* ── Work order sheet (slide-over) ── */}
+      <WorkOrderSheet
+        workOrder={selectedOrder}
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+      />
 
-            <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                {formatShortDate(ticket.created_at)}
-              </div>
-              <div className="capitalize">{ticket.category}</div>
-            </div>
-
-            <div className="pt-4 border-t flex items-center justify-between">
-              <div className="text-xs">
-                {ticket.unit_id ? (
-                  <span className="font-medium">
-                    Unit {ticket.unit_id.split("-")[0]}
-                  </span>
-                ) : (
-                  <span className="text-muted-foreground italic">
-                    Common Area
-                  </span>
-                )}
-              </div>
-
-              <Select
-                defaultValue={ticket.status}
-                onValueChange={(val) => {
-                  updateMutation.mutate({
-                    id: ticket.id,
-                    body: { status: val as WorkOrderStatus },
-                  });
-                }}
-                disabled={updateMutation.isPending}
-              >
-                <SelectTrigger className="w-[120px] h-8 text-[10px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="open">Open</SelectItem>
-                  <SelectItem value="inprogress">In Progress</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        ))}
-
-        {(!tickets || tickets.length === 0) && (
-          <div className="col-span-full py-20 text-center border-2 border-dashed rounded-xl bg-muted/20">
-            <CheckCircle className="w-10 h-10 text-green-500 mx-auto mb-3" />
-            <h3 className="text-lg font-semibold">
-              Everything&apos;s in order
-            </h3>
-            <p className="text-muted-foreground">
-              No active maintenance requests match your filters.
-            </p>
-          </div>
-        )}
-      </div>
-
+      {/* ── Create dialog ── */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="sm:max-w-[550px]">
+        <DialogContent className="sm:max-w-[560px]">
           <DialogHeader>
             <DialogTitle>Log Maintenance Issue</DialogTitle>
             <DialogDescription>
@@ -464,10 +571,10 @@ export default function MaintenancePage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-4 py-4">
+          <div className="grid gap-4 py-2">
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="property">Property</Label>
+                <Label>Property *</Label>
                 <SearchSelectDialog
                   title="Select Property"
                   placeholder="Search property name..."
@@ -484,7 +591,7 @@ export default function MaintenancePage() {
                   trigger={
                     <Button
                       variant="outline"
-                      className="w-full justify-start text-left font-normal"
+                      className="w-full justify-start text-left font-normal text-sm"
                     >
                       {newTicket.property_id
                         ? properties?.find(
@@ -495,8 +602,9 @@ export default function MaintenancePage() {
                   }
                 />
               </div>
+
               <div className="grid gap-2">
-                <Label htmlFor="unit">Unit (Optional)</Label>
+                <Label>Unit (Optional)</Label>
                 <SearchSelectDialog
                   title="Select Unit"
                   placeholder="Search unit number..."
@@ -505,22 +613,10 @@ export default function MaintenancePage() {
                     const unit = u as { id: string };
                     setNewTicket({ ...newTicket, unit_id: unit.id });
                   }}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="caretaker">Caretaker (Optional)</Label>
-                <SearchSelectDialog
-                  title="Select Caretaker"
-                  placeholder="Search caretaker..."
-                  searchFn={searchCaretakers}
-                  onSelect={(c: unknown) => {
-                    const caretaker = c as { id: string };
-                    setNewTicket({ ...newTicket, caretaker_id: caretaker.id });
-                  }}
                   trigger={
                     <Button
                       variant="outline"
-                      className="w-full justify-start text-left font-normal"
+                      className="w-full justify-start text-left font-normal text-sm"
                       disabled={!newTicket.property_id}
                     >
                       {newTicket.unit_id
@@ -536,9 +632,33 @@ export default function MaintenancePage() {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="title">Issue Title</Label>
+              <Label>Caretaker (Optional)</Label>
+              <SearchSelectDialog
+                title="Select Caretaker"
+                placeholder="Search caretaker..."
+                searchFn={searchCaretakers}
+                onSelect={(c: unknown) => {
+                  const caretaker = c as { id: string };
+                  setNewTicket({ ...newTicket, caretaker_id: caretaker.id });
+                }}
+                trigger={
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-left font-normal text-sm"
+                    disabled={!newTicket.property_id}
+                  >
+                    {newTicket.caretaker_id
+                      ? "Caretaker selected"
+                      : "Select caretaker"}
+                  </Button>
+                }
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="wo-title">Issue Title *</Label>
               <Input
-                id="title"
+                id="wo-title"
                 value={newTicket.title}
                 onChange={(e) =>
                   setNewTicket({ ...newTicket, title: e.target.value })
@@ -548,9 +668,9 @@ export default function MaintenancePage() {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="desc">Description</Label>
+              <Label htmlFor="wo-desc">Description</Label>
               <Textarea
-                id="desc"
+                id="wo-desc"
                 value={newTicket.description}
                 onChange={(e) =>
                   setNewTicket({ ...newTicket, description: e.target.value })
@@ -562,7 +682,7 @@ export default function MaintenancePage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="category">Category</Label>
+                <Label htmlFor="wo-category">Category</Label>
                 <Select
                   value={newTicket.category}
                   onValueChange={(v) =>
@@ -572,7 +692,7 @@ export default function MaintenancePage() {
                     })
                   }
                 >
-                  <SelectTrigger id="category">
+                  <SelectTrigger id="wo-category">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -584,8 +704,9 @@ export default function MaintenancePage() {
                   </SelectContent>
                 </Select>
               </div>
+
               <div className="grid gap-2">
-                <Label htmlFor="priority">Priority</Label>
+                <Label htmlFor="wo-priority">Priority</Label>
                 <Select
                   value={newTicket.priority}
                   onValueChange={(v) =>
@@ -595,7 +716,7 @@ export default function MaintenancePage() {
                     })
                   }
                 >
-                  <SelectTrigger id="priority">
+                  <SelectTrigger id="wo-priority">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

@@ -78,6 +78,7 @@ export type UnitFieldValues = z.infer<typeof unitFieldSchema>;
 
 const unitTypeFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
+  unit_type: z.string().optional().nullable(),
   bedrooms: z.number().int().min(0),
   bathrooms: z.number().int().min(0),
   base_rent: z.number().min(0),
@@ -87,6 +88,7 @@ const unitTypeFormSchema = z.object({
 
 type UnitTypeFormValues = {
   name: string;
+  unit_type?: string | null;
   bedrooms: number;
   bathrooms: number;
   base_rent: number;
@@ -256,6 +258,7 @@ export function InlineUnitList({
   const handleAddUnitType = (data: UnitTypeFormValues) => {
     appendType({
       name: data.name,
+      unit_type: data.unit_type ?? null,
       bedrooms: data.bedrooms,
       bathrooms: data.bathrooms,
       base_rent: data.base_rent,

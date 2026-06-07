@@ -96,7 +96,8 @@ export default function NewPropertyPage() {
         "config",
       ]);
     } else if (step === 2) {
-      valid = await trigger("unit_types");
+      // Unit creation is optional - skip validation
+      valid = true;
     } else if (step === 3) {
       valid = await trigger(["photos", "documents"]);
     } else if (step === 4) {
@@ -132,11 +133,7 @@ export default function NewPropertyPage() {
   const handleFormSubmit = async (values: PropertyFormValues) => {
     setSubmitError(null);
 
-    if (!values.unit_types?.length) {
-      setError("unit_types", { message: "Add at least one unit type." });
-      setStep(2);
-      return;
-    }
+    // Unit creation is optional - no validation required
 
     try {
       // 1. Invite new owners first

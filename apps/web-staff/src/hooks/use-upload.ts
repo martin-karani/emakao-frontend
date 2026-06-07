@@ -1,4 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
+import type { DocumentType } from "@emakao/api-types";
 
 export interface UploadResponse {
   key: string;
@@ -54,9 +55,25 @@ export function useUpload() {
       propertyId,
     }: {
       file: File;
-      documentType: string;
+      documentType: DocumentType;
       propertyId?: string;
-    }): Promise<{ id: string; s3_key: string; url: string }> => {
+    }): Promise<{
+      id: string;
+      agency_id: string;
+      file_name: string;
+      mime_type: string;
+      size_bytes: number;
+      document_type: string;
+      created_at: string;
+      download_url: string;
+      title?: string;
+      notes?: string;
+      property_id?: string;
+      unit_id?: string;
+      resident_id?: string;
+      agreement_id?: string;
+      work_order_id?: string;
+    }> => {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("document_type", documentType);
