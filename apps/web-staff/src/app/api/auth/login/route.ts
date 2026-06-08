@@ -80,13 +80,19 @@ export async function POST(req: NextRequest) {
       maxAge: data.expires_in,
     });
 
-    // ── 5. Return minimal payload to the client ───────────────────────────────
-    // must_change_password tells the frontend to redirect to /change-password
-    return NextResponse.json({
-      success: true,
-      must_change_password: data.must_change_password,
-      agency_name: data.agency_name,
-    });
+    // ── 5. Redirect into the active agency workspace ──────────────────────────
+    if (data.must_change_password) {
+      return NextResponse.json({
+        success: true,
+        must_change_password: true,
+        agency_name: data.agency_name,
+      });
+    }
+
+    return NextResponse.redirect(
+      new URL(`/${data.agency_slug}/dashboard`, req.url),
+      { status: 302 }
+    );
   } catch (error) {
     console.error("[AUTH_LOGIN_ERROR]", error);
     return NextResponse.json(

@@ -8,9 +8,10 @@ import { cookies } from "next/headers";
 export default async function RootPage() {
   const cookieStore = await cookies();
   const token = cookieStore.get("emakao_auth_token");
+  const agencySlug = cookieStore.get("active_agency_slug")?.value;
 
-  if (token?.value) {
-    redirect("/dashboard");
+  if (token?.value && agencySlug) {
+    redirect(`/${agencySlug}/dashboard`);
   } else {
     redirect("/login");
   }

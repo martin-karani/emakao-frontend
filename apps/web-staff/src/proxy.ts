@@ -36,12 +36,15 @@ export function proxy(req: NextRequest) {
   }
 
   const token = req.cookies.get("emakao_auth_token");
+  const activeAgencySlug = req.cookies.get("active_agency_slug")?.value;
   const isAuthenticated = Boolean(token?.value);
 
   // ── 2. Authenticated user hitting a public (auth) page → go to dashboard ──
   if (isAuthenticated && isPublicPath(pathname)) {
     const dashboardUrl = req.nextUrl.clone();
-    dashboardUrl.pathname = "/dashboard";
+    dashboardUrl.pathname = activeAgencySlug
+      ? `/${activeAgencySlug}/dashboard`
+      : "/login";
     dashboardUrl.search = "";
     return NextResponse.redirect(dashboardUrl);
   }

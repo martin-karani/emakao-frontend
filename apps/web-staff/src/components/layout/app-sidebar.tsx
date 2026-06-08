@@ -30,129 +30,139 @@ import {
 
 import { useAuth, useProperties, useWorkspace } from "@/hooks";
 
-const AGENCY_NAV = [
-  {
-    title: "Overview",
-    url: "/dashboard",
-    icon: LayoutDashboard,
-    isActive: true,
-    items: [
-      { title: "Summary", url: "/dashboard" },
-      { title: "Analytics", url: "/dashboard/analytics" },
-      { title: "Reports", url: "/dashboard/reports" },
-    ],
-  },
-  {
-    title: "Portfolio",
-    url: "/properties",
-    icon: Building2,
-    items: [
-      { title: "All Properties", url: "/properties" },
-      { title: "Units", url: "/properties/units" },
-      { title: "Add Property", url: "/properties/new" },
-    ],
-  },
-  {
-    title: "Finance",
-    url: "/finance",
-    icon: CreditCard,
-    items: [
-      { title: "Rent Collection", url: "/finance" },
-      { title: "Expenses", url: "/finance/expenses" },
-      { title: "Bank Statements", url: "/finance/statements" },
-      { title: "Invoices", url: "/finance/invoices" },
-    ],
-  },
-  {
-    title: "Staff & Roles",
-    url: "/staff",
-    icon: Users,
-    items: [
-      { title: "All Staff", url: "/staff" },
-      { title: "Invite Staff", url: "/staff/invite" },
-      { title: "Roles & Permissions", url: "/staff/roles" },
-    ],
-  },
-  {
-    title: "Settings",
-    url: "/settings",
-    icon: Settings2,
-    items: [
-      { title: "General", url: "/settings" },
-      { title: "Billing", url: "/settings/billing" },
-    ],
-  },
-];
+function buildAgencyNav(agencySlug: string) {
+  const p = (path: string) => `/${agencySlug}${path}`;
+  return [
+    {
+      title: "Overview",
+      url: p("/dashboard"),
+      icon: LayoutDashboard,
+      isActive: true,
+      items: [
+        { title: "Summary", url: p("/dashboard") },
+        { title: "Analytics", url: p("/dashboard/analytics") },
+        { title: "Reports", url: p("/dashboard/reports") },
+      ],
+    },
+    {
+      title: "Portfolio",
+      url: p("/properties"),
+      icon: Building2,
+      items: [
+        { title: "All Properties", url: p("/properties") },
+        { title: "Units", url: p("/properties/units") },
+        { title: "Add Property", url: p("/properties/new") },
+      ],
+    },
+    {
+      title: "Maintenance",
+      url: p("/maintenance"),
+      icon: Wrench,
+      items: [
+        { title: "All Work Orders", url: p("/maintenance") },
+        { title: "Vendors", url: p("/maintenance/vendors") },
+      ],
+    },
+    {
+      title: "Finance",
+      url: p("/finance"),
+      icon: CreditCard,
+      items: [
+        { title: "Rent Collection", url: p("/finance") },
+        { title: "Expenses", url: p("/finance/expenses") },
+        { title: "Bank Statements", url: p("/finance/statements") },
+        { title: "Invoices", url: p("/finance/invoices") },
+      ],
+    },
+    {
+      title: "Staff & Roles",
+      url: p("/staff"),
+      icon: Users,
+      items: [
+        { title: "All Staff", url: p("/staff") },
+        { title: "Invite Staff", url: p("/staff/invite") },
+        { title: "Roles & Permissions", url: p("/staff/roles") },
+      ],
+    },
+    {
+      title: "Settings",
+      url: p("/settings"),
+      icon: Settings2,
+      items: [
+        { title: "General", url: p("/settings") },
+        { title: "Billing", url: p("/settings/billing") },
+      ],
+    },
+  ];
+}
 
-const SECONDARY_NAV = [
-  { title: "Integrations", url: "/settings/integrations", icon: Blocks },
-  { title: "Support", url: "/support", icon: LifeBuoy },
-  { title: "Feedback", url: "/feedback", icon: Send },
-];
+function buildSecondaryNav(agencySlug: string) {
+  const p = (path: string) => `/${agencySlug}${path}`;
+  return [
+    { title: "Integrations", url: p("/settings/integrations"), icon: Blocks },
+    { title: "Support", url: p("/support"), icon: LifeBuoy },
+    { title: "Feedback", url: p("/feedback"), icon: Send },
+  ];
+}
 
-// `:id` is replaced at runtime with the real activePropertyId.
-// All sub-items use real Next.js routes — no more ?tab= query params.
-const PROPERTY_NAV_BASE = [
-  {
-    title: "Overview",
-    url: "/dashboard",
-    icon: LayoutDashboard,
-    isActive: true,
-    items: [
-      { title: "Summary", url: "/dashboard" },
-      { title: "Analytics", url: "/dashboard/analytics" },
-    ],
-  },
-  {
-    title: "Property",
-    url: "/properties/:id",
-    icon: Building2,
-    items: [
-      { title: "Overview", url: "/properties/:id" },
-      { title: "Units", url: "/properties/:id/units" },
-      { title: "Leases", url: "/properties/:id/leases" },
-      { title: "Team", url: "/properties/:id/team" },
-    ],
-  },
-  {
-    title: "Maintenance",
-    url: "/maintenance",
-    icon: Wrench,
-    items: [
-      { title: "Work Orders", url: "/maintenance" },
-      { title: "Open Requests", url: "/maintenance?status=open" },
-      { title: "Vendors", url: "/maintenance/vendors" },
-    ],
-  },
-  {
-    title: "Finance",
-    url: "/finance",
-    icon: CreditCard,
-    items: [
-      { title: "Rent Collection", url: "/finance" },
-      { title: "Expenses", url: "/finance/expenses" },
-      { title: "Invoices", url: "/finance/invoices" },
-    ],
-  },
-  {
-    title: "Documents",
-    url: "/leases",
-    icon: FileText,
-    items: [
-      { title: "All Leases", url: "/leases" },
-      { title: "Renewals", url: "/leases/renewals" },
-      { title: "Move-outs", url: "/leases/move-outs" },
-    ],
-  },
-  {
-    title: "Settings",
-    url: "/properties/:id/settings",
-    icon: Settings2,
-    items: [
-      { title: "Property Settings", url: "/properties/:id/settings" },
-    ],
-  },
-];
+function buildPropertyNav(agencySlug: string, propertySlug: string) {
+  const base = `/${agencySlug}/properties/${propertySlug}`;
+  return [
+    {
+      title: "Overview",
+      url: `/${agencySlug}/dashboard`,
+      icon: LayoutDashboard,
+      isActive: true,
+      items: [
+        { title: "Summary", url: `/${agencySlug}/dashboard` },
+        { title: "Analytics", url: `/${agencySlug}/dashboard/analytics` },
+      ],
+    },
+    {
+      title: "Property",
+      url: base,
+      icon: Building2,
+      items: [
+        { title: "Overview", url: base },
+        { title: "Units", url: `${base}/units` },
+        { title: "Leases", url: `${base}/leases` },
+        { title: "Team", url: `${base}/team` },
+      ],
+    },
+    {
+      title: "Maintenance",
+      url: `${base}/maintenance`,
+      icon: Wrench,
+      items: [{ title: "Work Orders", url: `${base}/maintenance` }],
+    },
+    {
+      title: "Finance",
+      url: `${base}/finance`,
+      icon: CreditCard,
+      items: [
+        { title: "Rent Collection", url: `${base}/finance` },
+        { title: "Expenses", url: `${base}/finance/expenses` },
+        { title: "Invoices", url: `${base}/finance/invoices` },
+      ],
+    },
+    {
+      title: "Documents",
+      url: `${base}/leases`,
+      icon: FileText,
+      items: [
+        { title: "All Leases", url: `${base}/leases` },
+        { title: "Renewals", url: `${base}/leases/renewals` },
+        { title: "Move-outs", url: `${base}/leases/move-outs` },
+      ],
+    },
+    {
+      title: "Settings",
+      url: `${base}/settings`,
+      icon: Settings2,
+      items: [{ title: "Property Settings", url: `${base}/settings` }],
+    },
+  ];
+}
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user, isLoading: isUserLoading } = useAuth();
@@ -163,10 +173,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     workspaceMode,
     activeProperty,
     activePropertyId,
+    agencySlug: workspaceAgencySlug,
+    activePropertySlug,
     selectAgencyWorkspace,
     selectPropertyWorkspace,
     isAgencyWorkspace,
   } = useWorkspace(properties ?? []);
+  const agencySlug = user?.agency_slug ?? workspaceAgencySlug ?? "";
 
   const mappedUser = React.useMemo(() => {
     if (!user) {
@@ -188,23 +201,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pinnedProperties = (properties ?? []).map((p) => ({
     id: p.id,
     name: p.name,
-    url: "/properties",
+    slug: p.slug,
+    url: `/${agencySlug}/properties/${p.slug}`,
     icon: Building2,
   }));
 
   const navItems = React.useMemo(() => {
-    if (isAgencyWorkspace) return AGENCY_NAV;
+    if (!agencySlug) return [];
+    if (isAgencyWorkspace) return buildAgencyNav(agencySlug);
 
-    // Replace every `:id` placeholder with the real activePropertyId.
-    return PROPERTY_NAV_BASE.map((item) => ({
-      ...item,
-      url: item.url.replace(":id", activePropertyId ?? ""),
-      items: item.items?.map((sub) => ({
-        ...sub,
-        url: sub.url.replace(":id", activePropertyId ?? ""),
-      })),
-    }));
-  }, [isAgencyWorkspace, activePropertyId]);
+    const propertySlug = activeProperty?.slug ?? activePropertySlug ?? "";
+    if (!propertySlug) return buildAgencyNav(agencySlug);
+    return buildPropertyNav(agencySlug, propertySlug);
+  }, [activeProperty?.slug, activePropertySlug, agencySlug, isAgencyWorkspace]);
 
   const navLabel = isAgencyWorkspace
     ? "Agency Workspace"
@@ -216,36 +225,29 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <WorkspaceSwitcher
           properties={properties ?? []}
           agencyName={user?.agency_name}
+          agencySlug={agencySlug}
           isLoading={isUserLoading || isPropertiesLoading}
           workspaceMode={workspaceMode}
-          activePropertyId={activePropertyId}
+          activePropertySlug={activeProperty?.slug ?? activePropertySlug}
           onSelectAgencyWorkspace={selectAgencyWorkspace}
           onSelectPropertyWorkspace={selectPropertyWorkspace}
         />
-
-        {!isAgencyWorkspace && activeProperty && (
-          <div className="mx-2 mb-1 flex items-center gap-2 rounded-md border border-primary/20 bg-primary/5 px-3 py-2">
-            <Building2 className="h-3.5 w-3.5 shrink-0 text-primary" />
-            <div className="min-w-0 flex-1 overflow-hidden">
-              <p className="truncate text-xs font-semibold text-primary leading-tight">
-                {activeProperty.name}
-              </p>
-              <p className="truncate text-[10px] text-muted-foreground capitalize">
-                {activeProperty.property_type?.replace(/_/g, " ") ?? "Property"}
-              </p>
-            </div>
-          </div>
-        )}
       </SidebarHeader>
 
       <SidebarContent>
         <NavMain items={navItems} label={navLabel} />
 
         {isAgencyWorkspace && pinnedProperties.length > 0 && (
-          <NavProperties properties={pinnedProperties} />
+          <NavProperties
+            properties={pinnedProperties}
+            addPropertyUrl={`/${agencySlug}/properties/new`}
+          />
         )}
 
-        <NavSecondary items={SECONDARY_NAV} className="mt-auto" />
+        <NavSecondary
+          items={agencySlug ? buildSecondaryNav(agencySlug) : []}
+          className="mt-auto"
+        />
 
         {!isAgencyWorkspace && activePropertyId && (
           <div className="px-4 py-4 mt-auto border-t border-sidebar-border">

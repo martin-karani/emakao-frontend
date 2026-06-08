@@ -3,6 +3,7 @@
 "use client";
 
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -10,7 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ArrowRight } from "lucide-react";
-import { useProperties, useWorkspace } from "@/hooks";
+import { usePropertyRoute } from "../property-route-context";
 
 function ViewAllLink({ href, label = "Open" }: { href: string; label?: string }) {
   return (
@@ -24,23 +25,24 @@ function ViewAllLink({ href, label = "Open" }: { href: string; label?: string })
 }
 
 export default function FinancePage() {
-  const { data: properties } = useProperties();
-  const { buildWorkspaceUrl } = useWorkspace(properties ?? []);
+  const { agencySlug } = useParams<{ agencySlug: string }>();
+  const { propertySlug } = usePropertyRoute();
+  const base = `/${agencySlug}/properties/${propertySlug}/finance`;
 
   const sections = [
     {
       label: "Rent Collection",
-      href: buildWorkspaceUrl("/finance"),
+      href: base,
       desc: "Track monthly rent payments",
     },
     {
       label: "Expenses",
-      href: buildWorkspaceUrl("/finance/expenses"),
+      href: `${base}/expenses`,
       desc: "Record property expenses",
     },
     {
       label: "Invoices",
-      href: buildWorkspaceUrl("/finance/invoices"),
+      href: `${base}/invoices`,
       desc: "View & send invoices",
     },
   ];

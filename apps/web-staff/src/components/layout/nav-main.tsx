@@ -18,8 +18,6 @@ import {
 } from "@/components/ui/sidebar";
 import Link from "next/link";
 
-import { useProperties, useWorkspace } from "@/hooks";
-
 export function NavMain({
   label = "Management",
   items,
@@ -36,9 +34,6 @@ export function NavMain({
     }[];
   }[];
 }) {
-  const { data: properties } = useProperties();
-  const { buildWorkspaceUrl } = useWorkspace(properties ?? []);
-
   return (
     <SidebarGroup>
       <SidebarGroupLabel>{label}</SidebarGroupLabel>
@@ -64,7 +59,7 @@ export function NavMain({
                   {item.items?.map((subItem) => (
                     <SidebarMenuSubItem key={subItem.title}>
                       <SidebarMenuSubButton
-                        render={<Link href={buildWorkspaceUrl(subItem.url)} />}
+                        render={<Link href={subItem.url} />}
                       >
                         <span>{subItem.title}</span>
                       </SidebarMenuSubButton>

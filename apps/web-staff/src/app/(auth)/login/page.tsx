@@ -15,9 +15,10 @@ import { LoginForm } from "./login-form";
 export default async function LoginPage() {
   const cookieStore = await cookies();
   const token = cookieStore.get("emakao_auth_token");
+  const agencySlug = cookieStore.get("active_agency_slug")?.value;
 
-  if (token?.value) {
-    redirect("/dashboard");
+  if (token?.value && agencySlug) {
+    redirect(`/${agencySlug}/dashboard`);
   }
 
   return <LoginForm />;

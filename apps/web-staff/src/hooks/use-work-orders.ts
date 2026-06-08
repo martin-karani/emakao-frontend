@@ -26,6 +26,8 @@ import type {
   WorkOrderReporterType,
   CreateWorkOrderDto,
   UpdateWorkOrderDto,
+  WorkOrderComment,
+  CreateWorkOrderCommentDto,
 } from "@emakao/api-types";
 
 interface UseWorkOrdersOptions {
@@ -140,6 +142,55 @@ export function useCreateWorkOrder() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["work-orders"] });
+    },
+  });
+}
+
+export function useWorkOrderComments(workOrderId: string) {
+  return useQuery({
+    queryKey: ["work-orders", workOrderId, "comments"],
+    queryFn: async (): Promise<WorkOrderComment[]> => {
+      const { data, error } = await apiClient.GET(
+        "/api/v1/work-orders/{id}/comments",
+        {
+          params: {
+            path: { id: workOrderId },
+            query: { limit: 100, top_level_only: false },
+          },
+        },
+      );
+      if (error) throw new Error("Failed to fetch comments");
+      return data;
+    },
+    enabled: !!workOrderId,
+  });
+}
+
+export function useAddWorkOrderComment() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      workOrderId,
+      body,
+    }: {
+      workOrderId: string;
+      body: CreateWorkOrderCommentDto;
+    }): Promise<WorkOrderComment> => {
+      const { data, error } = await apiClient.POST(
+        "/api/v1/work-orders/{id}/comments",
+        {
+          params: { path: { id: workOrderId } },
+          body,
+        },
+      );
+      if (error) throw new Error("Failed to add comment");
+      return data;
+    },
+    onSuccess: (_, { workOrderId }) => {
+      queryClient.invalidateQueries({
+        queryKey: ["work-orders", workOrderId, "comments"],
+      });
     },
   });
 }

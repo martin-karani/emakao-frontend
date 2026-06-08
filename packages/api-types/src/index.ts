@@ -32,7 +32,8 @@ export type InvoiceLineItem = components["schemas"]["InvoiceLineItemResponse"];
 
 // ── Bank statements & reconciliation ─────────────────────────────────────────
 export type BankStatement = components["schemas"]["BankStatementResponse"];
-export type BankStatementSummary = components["schemas"]["BankStatementSummaryResponse"];
+export type BankStatementSummary =
+  components["schemas"]["BankStatementSummaryResponse"];
 export type BankStatementLine =
   components["schemas"]["BankStatementLineResponse"];
 export type ReconciliationReport =
@@ -48,6 +49,12 @@ export type WorkOrderCategory = components["schemas"]["WorkOrderCategory"];
 export type WorkOrderReporterType =
   components["schemas"]["WorkOrderReporterType"];
 export type UpdateWorkOrderDto = components["schemas"]["UpdateWorkOrderDto"];
+export type WorkOrderComment =
+  components["schemas"]["WorkOrderCommentResponse"];
+export type CreateWorkOrderCommentDto =
+  components["schemas"]["CreateWorkOrderCommentDto"];
+export type WorkOrderSubtask =
+  components["schemas"]["WorkOrderSubtaskResponse"];
 
 // ── Staff ─────────────────────────────────────────────────────────────────────
 export type StaffUserResponse = components["schemas"]["StaffUserResponse"];

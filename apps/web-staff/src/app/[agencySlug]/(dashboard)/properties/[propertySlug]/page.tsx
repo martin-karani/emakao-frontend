@@ -21,40 +21,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useProperty } from "@/hooks/use-properties";
-import { useProperties, useWorkspace } from "@/hooks";
 import { PROPERTY_TYPE_LABELS, PropertyWithPolicies, isMultiUnit } from "./_shared/types";
 import { formatKES } from "@emakao/shared";
+import { usePropertyRoute } from "./property-route-context";
 
 export default function PropertyOverviewPage() {
-  const { id } = useParams<{ id: string }>();
-  const { data: properties } = useProperties();
-  const { buildWorkspaceUrl } = useWorkspace(properties ?? []);
-  const { data: property, isLoading } = useProperty(id);
-
-  if (isLoading) {
-    return (
-      <div className="flex flex-1 items-center justify-center p-8">
-        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  if (!property) {
-    return (
-      <div className="p-8 space-y-3">
-        <p className="text-muted-foreground">Property not found.</p>
-        <Button
-          variant="outline"
-          size="sm"
-          nativeButton={false}
-          render={<Link href={buildWorkspaceUrl("/properties")} />}
-        >
-          Back to properties
-        </Button>
-      </div>
-    );
-  }
+  const { agencySlug } = useParams<{ agencySlug: string }>();
+  const { property, propertySlug } = usePropertyRoute();
 
   const config = property.config as Record<string, unknown> | undefined;
   const configEntries = config
@@ -69,32 +42,32 @@ export default function PropertyOverviewPage() {
   const quickActions = [
     {
       label: "Units",
-      href: buildWorkspaceUrl(`/properties/${id}/units`),
+      href: `/${agencySlug}/properties/${propertySlug}/units`,
       icon: Layers,
     },
     {
       label: "Leases",
-      href: buildWorkspaceUrl(`/properties/${id}/leases`),
+      href: `/${agencySlug}/properties/${propertySlug}/leases`,
       icon: FileText,
     },
     {
       label: "Work Orders",
-      href: buildWorkspaceUrl(`/properties/${id}/maintenance`),
+      href: `/${agencySlug}/properties/${propertySlug}/maintenance`,
       icon: Wrench,
     },
     {
       label: "Finance",
-      href: buildWorkspaceUrl(`/properties/${id}/finance`),
+      href: `/${agencySlug}/properties/${propertySlug}/finance`,
       icon: CreditCard,
     },
     {
       label: "Team",
-      href: buildWorkspaceUrl(`/properties/${id}/team`),
+      href: `/${agencySlug}/properties/${propertySlug}/team`,
       icon: Users,
     },
     {
       label: "Settings",
-      href: buildWorkspaceUrl(`/properties/${id}/settings`),
+      href: `/${agencySlug}/properties/${propertySlug}/settings`,
       icon: Settings,
     },
   ];
@@ -109,9 +82,7 @@ export default function PropertyOverviewPage() {
             variant="outline"
             size="sm"
             nativeButton={false}
-            render={
-              <Link href={buildWorkspaceUrl(`/properties/${id}/settings`)} />
-            }
+            render={<Link href={`/${agencySlug}/properties/${propertySlug}/settings`} />}
           >
             <Edit className="mr-1.5 h-3.5 w-3.5" /> Edit
           </Button>

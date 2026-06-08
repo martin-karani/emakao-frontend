@@ -87,6 +87,11 @@ export function LoginForm() {
         throw new Error(data.error || "Invalid credentials. Please try again.");
       }
 
+      if (res.redirected) {
+        window.location.assign(res.url);
+        return;
+      }
+
       const data = await res.json();
 
       // Backend signals the user must set a new password (first login / invite flow)
@@ -95,8 +100,7 @@ export function LoginForm() {
         return;
       }
 
-      // Redirect to originally-intended page or the overview dashboard
-      const next = searchParams.get("next") || "/dashboard";
+      const next = searchParams.get("next") || "/";
       router.push(next);
       router.refresh();
     } catch (err: unknown) {

@@ -25,7 +25,6 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import Link from "next/link";
-import { useProperties, useWorkspace } from "@/hooks";
 
 /**
  * "Quick access" pinned properties — shortcuts to individual property pages.
@@ -33,17 +32,18 @@ import { useProperties, useWorkspace } from "@/hooks";
  */
 export function NavProperties({
   properties,
+  addPropertyUrl,
 }: {
   properties: {
     id?: string;
+    slug: string;
     name: string;
     url: string;
     icon: LucideIcon;
   }[];
+  addPropertyUrl: string;
 }) {
   const { isMobile } = useSidebar();
-  const { data: allProperties } = useProperties();
-  const { buildWorkspaceUrl } = useWorkspace(allProperties ?? []);
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
@@ -51,11 +51,7 @@ export function NavProperties({
       <SidebarMenu>
         {properties.map((item) => (
           <SidebarMenuItem key={item.id || item.name}>
-            <SidebarMenuButton
-              render={
-                <Link href={buildWorkspaceUrl(item.url, "property", item.id)} />
-              }
-            >
+            <SidebarMenuButton render={<Link href={item.url} />}>
               <item.icon />
               <span>{item.name}</span>
             </SidebarMenuButton>
@@ -77,7 +73,7 @@ export function NavProperties({
                 {/* View Property */}
                 <DropdownMenuItem>
                   <Link
-                    href={buildWorkspaceUrl(item.url, "property", item.id)}
+                    href={item.url}
                     className="flex items-center gap-1.5 w-full"
                   >
                     <Eye className="text-muted-foreground size-4" />
@@ -88,7 +84,7 @@ export function NavProperties({
                 {/* View Leases */}
                 <DropdownMenuItem>
                   <Link
-                    href={buildWorkspaceUrl("/leases", "property", item.id)}
+                    href={`${item.url}/leases`}
                     className="flex items-center gap-1.5 w-full"
                   >
                     <Forward className="text-muted-foreground size-4" />
@@ -112,7 +108,7 @@ export function NavProperties({
         <SidebarMenuItem>
           <SidebarMenuButton
             className="text-sidebar-foreground/70"
-            render={<Link href="/properties/new" />}
+            render={<Link href={addPropertyUrl} />}
           >
             <Plus className="text-sidebar-foreground/70" />
             <span>Add Property</span>

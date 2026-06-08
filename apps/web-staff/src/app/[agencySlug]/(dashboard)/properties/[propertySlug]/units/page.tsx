@@ -18,8 +18,8 @@ import {
 } from "lucide-react";
 
 import { useUnits, useUpdateUnit, useDeleteUnit } from "@/hooks/use-units";
-import { useProperty } from "@/hooks/use-properties";
 import { Badge } from "@/components/ui/badge";
+import { usePropertyRoute } from "../property-route-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,11 +41,7 @@ import {
 
 import type { Unit, UnitStatus, UpdateUnitDto } from "@emakao/api-types";
 import { formatKES } from "@emakao/shared";
-import {
-  UnitType,
-  UNIT_STATUS_CONFIG,
-  UNIT_STATUSES,
-} from "../_shared/types";
+import { UnitType, UNIT_STATUS_CONFIG, UNIT_STATUSES } from "../_shared/types";
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
@@ -356,7 +352,7 @@ function UnitCard({
               onClick={() => {
                 if (
                   confirm(
-                    `Delete Unit ${unit.unit_number}? This cannot be undone.`
+                    `Delete Unit ${unit.unit_number}? This cannot be undone.`,
                   )
                 ) {
                   onDelete(unit.id);
@@ -380,7 +376,7 @@ function UnitCard({
 
 function groupByUnitType(
   units: Unit[],
-  unitTypes: UnitType[]
+  unitTypes: UnitType[],
 ): { unitType: UnitType | null; units: Unit[] }[] {
   const groups = new Map<string | null, Unit[]>();
   for (const u of units) {
@@ -456,9 +452,8 @@ function UnitTypeSection({
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function UnitsPage() {
-  const { id } = useParams<{ id: string }>();
-  const { data: units, isLoading } = useUnits(id);
-  const { data: property } = useProperty(id);
+  const { propertyId, property } = usePropertyRoute();
+  const { data: units, isLoading } = useUnits(propertyId);
   const unitTypes = (property?.unit_types ?? []) as UnitType[];
 
   if (isLoading) {
@@ -476,7 +471,11 @@ export default function UnitsPage() {
       {/* Stat bar */}
       {(units?.length ?? 0) > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <StatCard label="Total" value={units!.length} color="text-foreground" />
+          <StatCard
+            label="Total"
+            value={units!.length}
+            color="text-foreground"
+          />
           <StatCard
             label="Occupied"
             value={units!.filter((u) => u.status === "occupied").length}
@@ -510,7 +509,7 @@ export default function UnitsPage() {
               <UnitTypeSection
                 unitType={unitType}
                 units={typeUnits}
-                propertyId={id}
+                propertyId={propertyId}
               />
             </div>
           ))}

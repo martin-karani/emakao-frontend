@@ -1614,6 +1614,54 @@ export interface paths {
         patch: operations["update_work_order"];
         trace?: never;
     };
+    "/api/v1/work-orders/{id}/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_work_order_activity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/work-orders/{id}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_work_order_comments"];
+        put?: never;
+        post: operations["create_work_order_comment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/work-orders/{id}/comments/{comment_id}/replies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_comment_replies"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -2004,6 +2052,22 @@ export interface components {
             phone?: string | null;
             speciality?: string | null;
         };
+        CreateWorkOrderCommentDto: {
+            attachments?: components["schemas"]["WorkOrderAttachment"][] | null;
+            /** Format: uuid */
+            author_caretaker_id?: string | null;
+            /** Format: uuid */
+            author_resident_id?: string | null;
+            author_type?: null | components["schemas"]["WorkOrderCommentAuthorType"];
+            body: string;
+            /** @description true = only staff/caretakers see this (internal memo) */
+            is_internal?: boolean | null;
+            /**
+             * Format: uuid
+             * @description Omit to create a top-level comment; set to reply to another comment
+             */
+            parent_comment_id?: string | null;
+        };
         CreateWorkOrderDto: {
             /** Format: uuid */
             assigned_caretaker_id?: string | null;
@@ -2037,6 +2101,7 @@ export interface components {
             reporter_type?: null | components["schemas"]["WorkOrderReporterType"];
             /** Format: date-time */
             scheduled_at?: string | null;
+            subtasks?: components["schemas"]["WorkOrderSubtask"][] | null;
             title: string;
             /** Format: uuid */
             unit_id?: string | null;
@@ -2557,6 +2622,20 @@ export interface components {
          * @enum {string}
          */
         PaymentClaimStatus: "pendingreview" | "approved" | "rejected";
+        PaymentMethod: {
+            /** @description e.g. bank name or M-Pesa paybill name. */
+            account_name?: string | null;
+            /** @description e.g. M-Pesa paybill number or bank account number. */
+            account_number?: string | null;
+            /** @description Free-text instructions printed on rent statements (e.g. "Use unit number as reference"). */
+            instructions?: string | null;
+            method: components["schemas"]["PaymentMethodKind"];
+        };
+        /**
+         * @description Accepted method of rent / service-charge payment for this property.
+         * @enum {string}
+         */
+        PaymentMethodKind: "mpesa" | "bank" | "cash";
         /**
          * @description payment_claims.method_type
          * @enum {string}
@@ -2661,6 +2740,33 @@ export interface components {
             name: string;
             url: string;
         };
+        /** @description All per-property policy configuration that agents/owners can customise. */
+        PropertyPolicies: {
+            /** @description Agent management fee as a percentage of collected rent (2.5–10 %). */
+            agent_commission_percent?: string | null;
+            /**
+             * Format: int32
+             * @description How many months of rent the deposit equals (typically 1–3).
+             */
+            deposit_months?: number | null;
+            /**
+             * Format: int32
+             * @description Maximum days within which deposit must be refunded after move-out.
+             */
+            deposit_refund_days?: number | null;
+            /**
+             * Format: int32
+             * @description Number of days after the due date before a late fee is applied.
+             */
+            late_fee_grace_days?: number | null;
+            /** @description "flat" or "percent". */
+            late_fee_type?: string | null;
+            /** @description Late-fee amount (KES if flat, percentage if percent). */
+            late_fee_value?: string | null;
+            /** @description Accepted rent payment methods for this property. */
+            payment_methods?: components["schemas"]["PaymentMethod"][];
+            service_charges?: null | components["schemas"]["ServiceCharges"];
+        };
         PropertyResponse: {
             address: string;
             /** Format: uuid */
@@ -2675,7 +2781,9 @@ export interface components {
             id: string;
             name: string;
             photos: string[];
+            policies?: null | components["schemas"]["PropertyPolicies"];
             property_type: components["schemas"]["PropertyType"];
+            slug: string;
             unit_types: components["schemas"]["UnitTypeResponse"][];
             /** Format: date-time */
             updated_at: string;
@@ -2693,6 +2801,7 @@ export interface components {
             id: string;
             name: string;
             property_type: components["schemas"]["PropertyType"];
+            slug: string;
             /** @description Number of configured unit type templates (not individual units). */
             unit_type_count: number;
             /** Format: date-time */
@@ -2786,6 +2895,20 @@ export interface components {
             /** Format: int64 */
             uptime_seconds: number;
             websocket_channels: number;
+        };
+        /** @description Service charges collected from tenants for shared costs in multi-unit properties. */
+        ServiceCharges: {
+            /** @description Electricity for common areas — split equally across units (KES total). */
+            electricity_common_kes: string;
+            enabled: boolean;
+            /** @description Monthly garbage/waste collection fee per unit (KES). */
+            garbage_fee_kes: string;
+            /** @description Any other fixed fees, e.g. `[{"name": "Parking", "amount": 500}]`. */
+            other_fees?: unknown[];
+            /** @description Monthly fee per unit for security (KES). */
+            security_fee_kes: string;
+            /** @description Monthly water charge per unit (KES). */
+            water_rate_per_unit: string;
         };
         ServiceInfo: {
             name: string;
@@ -2981,6 +3104,7 @@ export interface components {
             address?: string | null;
             city?: string | null;
             name?: string | null;
+            policies?: null | components["schemas"]["PropertyPolicies"];
             work_order_prefix?: string | null;
         };
         /**
@@ -3048,6 +3172,8 @@ export interface components {
             /** Format: date-time */
             started_at?: string | null;
             status?: null | components["schemas"]["WorkOrderStatus"];
+            /** @description Full replacement of the subtasks list */
+            subtasks?: components["schemas"]["WorkOrderSubtask"][] | null;
             /**
              * Format: uuid
              * @description Some(Some(id)) = assign vendor, Some(None) = clear vendor
@@ -3145,6 +3271,19 @@ export interface components {
          * @enum {string}
          */
         VendorStatus: "active" | "inactive" | "blacklisted";
+        WorkOrderActivityResponse: {
+            /** Format: uuid */
+            actor_id: string;
+            actor_type: components["schemas"]["WorkOrderCommentAuthorType"];
+            /** Format: date-time */
+            created_at: string;
+            event_type: string;
+            /** Format: uuid */
+            id: string;
+            payload: unknown;
+            /** Format: uuid */
+            work_order_id: string;
+        };
         WorkOrderAttachment: {
             key: string;
             mime: string;
@@ -3163,6 +3302,31 @@ export interface components {
         };
         /** @enum {string} */
         WorkOrderCategory: "plumbing" | "electrical" | "structural" | "hvac" | "appliance" | "painting" | "cleaning" | "security" | "landscaping" | "pest_control" | "general";
+        /** @enum {string} */
+        WorkOrderCommentAuthorType: "staff" | "resident" | "caretaker" | "owner" | "vendor";
+        WorkOrderCommentResponse: {
+            attachments: components["schemas"]["WorkOrderAttachmentResponse"][];
+            /** Format: uuid */
+            author_caretaker_id?: string | null;
+            /** Format: uuid */
+            author_id: string;
+            /** Format: uuid */
+            author_resident_id?: string | null;
+            author_type: components["schemas"]["WorkOrderCommentAuthorType"];
+            body: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            id: string;
+            is_edited: boolean;
+            is_internal: boolean;
+            /** Format: uuid */
+            parent_comment_id?: string | null;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: uuid */
+            work_order_id: string;
+        };
         /**
          * @description work_orders.priority
          * @enum {string}
@@ -3207,6 +3371,7 @@ export interface components {
             /** Format: date-time */
             started_at?: string | null;
             status: components["schemas"]["WorkOrderStatus"];
+            subtasks: components["schemas"]["WorkOrderSubtaskResponse"][];
             title: string;
             /** Format: uuid */
             unit_id?: string | null;
@@ -3222,6 +3387,16 @@ export interface components {
          * @enum {string}
          */
         WorkOrderStatus: "open" | "inprogress" | "completed" | "cancelled";
+        WorkOrderSubtask: {
+            id: string;
+            is_completed: boolean;
+            title: string;
+        };
+        WorkOrderSubtaskResponse: {
+            id: string;
+            is_completed: boolean;
+            title: string;
+        };
         /** @description Body for `POST /api/v1/admin/agencies/:agency_id/permissions/tuples`. */
         WriteTupleDto: {
             /** @description e.g. "property:123e4567-e89b-12d3-a456-426614174000" */
@@ -7734,6 +7909,137 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_work_order_activity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Work order UUID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderActivityResponse"][];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_work_order_comments: {
+        parameters: {
+            query?: {
+                /** @description Only return top-level comments when true; include replies when false (default) */
+                top_level_only?: boolean | null;
+                limit?: number | null;
+                offset?: number | null;
+            };
+            header?: never;
+            path: {
+                /** @description Work order UUID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderCommentResponse"][];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    create_work_order_comment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Work order UUID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateWorkOrderCommentDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderCommentResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_comment_replies: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Work order UUID */
+                id: string;
+                /** @description Parent comment UUID */
+                comment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderCommentResponse"][];
                 };
             };
         };

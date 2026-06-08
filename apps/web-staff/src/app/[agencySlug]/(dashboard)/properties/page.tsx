@@ -5,7 +5,7 @@
 
 "use client";
 
-import { useEffect } from "react";
+import {} from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useProperties, useDeleteProperty } from "@/hooks/use-properties";
@@ -43,21 +43,12 @@ const PROPERTY_TYPE_LABELS: Record<string, string> = {
 export default function PropertiesPage() {
   const router = useRouter();
   const { data: properties, isLoading } = useProperties();
-  const { workspaceMode, activeProperty, buildWorkspaceUrl } = useWorkspace(
-    properties ?? []
-  );
+  const { workspaceMode, activeProperty, buildAgencyUrl, buildPropertyUrl } =
+    useWorkspace(properties ?? []);
   const deleteMutation = useDeleteProperty();
 
-  // ── Property-workspace mode → forward to the property detail hub ───────────
-  useEffect(() => {
-    if (!isLoading && workspaceMode === "property" && activeProperty) {
-      // Preserve the `?w=` param so workspace context is not lost.
-      router.replace(buildWorkspaceUrl(`/properties/${activeProperty.id}`));
-    }
-  }, [isLoading, workspaceMode, activeProperty, router, buildWorkspaceUrl]);
-
-  // Show a spinner while loading or while the redirect is pending.
-  if (isLoading || (workspaceMode === "property" && activeProperty)) {
+  // Show a spinner while loading.
+  if (isLoading) {
     return (
       <div className="flex items-center gap-2 p-8 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" />
@@ -78,7 +69,10 @@ export default function PropertiesPage() {
             {(properties?.length ?? 0) === 1 ? "y" : "ies"} in your portfolio
           </p>
         </div>
-        <Button size="sm" render={<Link href="/properties/new" />}>
+        <Button
+          size="sm"
+          render={<Link href={buildAgencyUrl("/properties/new")} />}
+        >
           <Plus className="mr-1.5 h-4 w-4" />
           Add Property
         </Button>
@@ -89,7 +83,10 @@ export default function PropertiesPage() {
         <div className="rounded-lg border border-dashed p-12 text-center text-sm text-muted-foreground">
           <Building2 className="mx-auto mb-3 h-8 w-8 opacity-30" />
           No properties yet.{" "}
-          <Link href="/properties/new" className="text-primary underline">
+          <Link
+            href={buildAgencyUrl("/properties/new")}
+            className="text-primary underline"
+          >
             Add your first property
           </Link>
           .
@@ -127,7 +124,7 @@ export default function PropertiesPage() {
                         variant="ghost"
                         size="icon-sm"
                         title="Open details"
-                        render={<Link href={`/properties/${p.id}`} />}
+                        render={<Link href={buildPropertyUrl(p.slug)} />}
                       >
                         <ExternalLink className="h-3.5 w-3.5" />
                       </Button>
@@ -136,7 +133,7 @@ export default function PropertiesPage() {
                         size="icon-sm"
                         title="Edit property"
                         render={
-                          <Link href={`/properties/${p.id}/settings`} />
+                          <Link href={buildPropertyUrl(p.slug, "/settings")} />
                         }
                       >
                         <Edit className="h-3.5 w-3.5" />
@@ -150,7 +147,7 @@ export default function PropertiesPage() {
                         onClick={() => {
                           if (
                             confirm(
-                              `Delete "${p.name}"? This cannot be undone.`
+                              `Delete "${p.name}"? This cannot be undone.`,
                             )
                           ) {
                             deleteMutation.mutate(p.id);

@@ -29,27 +29,33 @@ import type { WorkspaceMode } from "@/hooks";
 export function WorkspaceSwitcher({
   properties,
   agencyName,
+  agencySlug,
   isLoading,
   workspaceMode,
-  activePropertyId,
+  activePropertySlug,
   onSelectAgencyWorkspace,
   onSelectPropertyWorkspace,
 }: {
   properties: PropertySummary[];
   agencyName?: string;
+  agencySlug?: string;
   isLoading?: boolean;
   workspaceMode: WorkspaceMode;
-  activePropertyId?: string;
+  activePropertySlug?: string;
   onSelectAgencyWorkspace: () => void;
-  onSelectPropertyWorkspace: (propertyId?: string) => void;
+  onSelectPropertyWorkspace: (propertySlug?: string) => void;
 }) {
   const { isMobile } = useSidebar();
   const activeProperty = React.useMemo(
-    () => properties.find((property) => property.id === activePropertyId),
-    [properties, activePropertyId],
+    () => properties.find((property) => property.slug === activePropertySlug),
+    [properties, activePropertySlug],
   );
   const currentWorkspaceValue =
-    workspaceMode === "agency" ? "agency" : `property:${activePropertyId}`;
+    workspaceMode === "agency" ? "agency" : `property:${activePropertySlug}`;
+  const agencySettingsUrl = agencySlug ? `/${agencySlug}/settings` : "/settings";
+  const addPropertyUrl = agencySlug
+    ? `/${agencySlug}/properties/new`
+    : "/properties/new";
 
   if (isLoading) {
     return (
@@ -125,7 +131,7 @@ export function WorkspaceSwitcher({
 
               <DropdownMenuItem className="gap-2 p-2">
                 <Link
-                  href="/settings"
+                  href={agencySettingsUrl}
                   className="flex w-full items-center gap-2"
                 >
                   <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
@@ -139,7 +145,7 @@ export function WorkspaceSwitcher({
 
               <DropdownMenuItem className="gap-2 p-2">
                 <Link
-                  href="/properties/new"
+                  href={addPropertyUrl}
                   className="flex w-full items-center gap-2"
                 >
                   <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
@@ -217,8 +223,8 @@ export function WorkspaceSwitcher({
                 {properties.map((property) => (
                   <DropdownMenuRadioItem
                     key={property.id}
-                    value={`property:${property.id}`}
-                    onClick={() => onSelectPropertyWorkspace(property.id)}
+                    value={`property:${property.slug}`}
+                    onClick={() => onSelectPropertyWorkspace(property.slug)}
                   >
                     <Building2 className="size-4" />
                     <div className="flex flex-col">
@@ -235,7 +241,10 @@ export function WorkspaceSwitcher({
             <DropdownMenuSeparator />
 
             <DropdownMenuItem className="gap-2 p-2">
-              <Link href="/settings" className="flex w-full items-center gap-2">
+              <Link
+                href={agencySettingsUrl}
+                className="flex w-full items-center gap-2"
+              >
                 <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
                   <Plus className="size-4" />
                 </div>
@@ -247,7 +256,7 @@ export function WorkspaceSwitcher({
 
             <DropdownMenuItem className="gap-2 p-2">
               <Link
-                href="/properties/new"
+                href={addPropertyUrl}
                 className="flex w-full items-center gap-2"
               >
                 <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">

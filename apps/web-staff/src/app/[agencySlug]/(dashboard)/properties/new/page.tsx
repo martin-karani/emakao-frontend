@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { CreatePropertyDto } from "@emakao/api-types";
@@ -36,6 +36,7 @@ const STEPS: GuidedCreateStep[] = [
 
 export default function NewPropertyPage() {
   const router = useRouter();
+  const { agencySlug } = useParams<{ agencySlug: string }>();
   const [step, setStep] = useState<number>(1);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [keyToUrl, setKeyToUrl] = useState<Record<string, string>>({});
@@ -206,9 +207,9 @@ export default function NewPropertyPage() {
         })),
         portal_base_url: window.location.origin,
         agency_name: "Emakao",
-      } as unknown as CreatePropertyDto)) as { id: string };
+      } as unknown as CreatePropertyDto)) as { id: string; slug: string };
 
-      router.push(`/properties/${property.id}`);
+      router.push(`/${agencySlug}/properties/${property.slug}`);
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : "Unexpected error");
     }

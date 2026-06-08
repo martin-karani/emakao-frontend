@@ -11,7 +11,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { useProperties, useWorkspace } from "@/hooks";
 
 export function NavSecondary({
   items,
@@ -23,19 +22,13 @@ export function NavSecondary({
     icon: LucideIcon;
   }[];
 } & React.ComponentPropsWithoutRef<typeof SidebarGroup>) {
-  const { data: properties } = useProperties();
-  const { buildWorkspaceUrl } = useWorkspace(properties ?? []);
-
   return (
     <SidebarGroup {...props}>
       <SidebarGroupContent>
         <SidebarMenu>
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton
-                size="sm"
-                render={<Link href={buildWorkspaceUrl(item.url)} />}
-              >
+              <SidebarMenuButton size="sm" render={<Link href={item.url} />}>
                 <item.icon className="h-4 w-4" />
                 <span>{item.title}</span>
               </SidebarMenuButton>

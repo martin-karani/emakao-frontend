@@ -48,6 +48,7 @@ import {
   isMultiUnit,
 } from "../_shared/types";
 import { formatKES } from "@emakao/shared";
+import { usePropertyRoute } from "../property-route-context";
 
 // ── Edit form ─────────────────────────────────────────────────────────────────
 
@@ -85,7 +86,7 @@ function PropertyProfileCard({ property }: { property: PropertyWithPolicies }) {
       setEditing(false);
     } catch (err) {
       setSaveError(
-        err instanceof Error ? err.message : "Failed to update property"
+        err instanceof Error ? err.message : "Failed to update property",
       );
     }
   };
@@ -187,21 +188,10 @@ function PropertyProfileCard({ property }: { property: PropertyWithPolicies }) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
-  const { id } = useParams<{ id: string }>();
-  const { data: property, isLoading } = useProperty(id);
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center gap-2 text-sm text-muted-foreground p-8">
-        <Loader2 className="w-4 h-4 animate-spin" /> Loading settings…
-      </div>
-    );
-  }
+  const { property } = usePropertyRoute();
 
   if (!property) {
-    return (
-      <p className="text-sm text-muted-foreground">Property not found.</p>
-    );
+    return <p className="text-sm text-muted-foreground">Property not found.</p>;
   }
 
   const p = property as PropertyWithPolicies;
@@ -222,8 +212,8 @@ export default function SettingsPage() {
           <CardDescription>Send bulk notices to all residents</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <StatementBroadcastButton propertyId={id} />
-          <BroadcastNoticeModal propertyId={id} />
+          <StatementBroadcastButton propertyId={property.id} />
+          <BroadcastNoticeModal propertyId={property.id} />
         </CardContent>
       </Card>
 
@@ -306,7 +296,9 @@ export default function SettingsPage() {
           {policies.deposit_months != null && (
             <div className="flex justify-between">
               <span className="text-muted-foreground">Deposit</span>
-              <span className="font-medium">{policies.deposit_months} months</span>
+              <span className="font-medium">
+                {policies.deposit_months} months
+              </span>
             </div>
           )}
           {!policies.agent_commission_percent &&
@@ -346,7 +338,7 @@ export default function SettingsPage() {
                     <span className="text-muted-foreground">{label}</span>
                     <span className="font-medium">{formatKES(val)}</span>
                   </div>
-                )
+                ),
             )}
             {serviceCharges.other_fees?.map((f, i) => (
               <div key={i} className="flex justify-between">

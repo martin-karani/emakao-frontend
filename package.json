@@ -9,6 +9,7 @@
     "dev:web": "turbo run dev --filter=web",
     "dev:mobile": "turbo run dev --filter=mobile",
     "dev:docs": "turbo run dev --filter=docs",
+    "generate-types": "turbo run generate-types --filter=@emakao/api-types",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types"

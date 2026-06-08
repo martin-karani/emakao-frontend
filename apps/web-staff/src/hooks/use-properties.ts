@@ -47,6 +47,22 @@ export function useProperty(id: string | undefined) {
   });
 }
 
+export function usePropertyBySlug(slug: string | undefined) {
+  return useQuery({
+    queryKey: ["properties", "slug", slug],
+    queryFn: async (): Promise<Property> => {
+      const res = await fetch(
+        `/api/proxy/api/v1/properties/by-slug/${encodeURIComponent(slug!)}`
+      );
+      if (!res.ok) {
+        throw new Error("Failed to fetch property");
+      }
+      return res.json();
+    },
+    enabled: !!slug,
+  });
+}
+
 // ── Create ────────────────────────────────────────────────────────────────────
 
 export function useCreateProperty() {

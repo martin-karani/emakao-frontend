@@ -1,23 +1,49 @@
 "use client";
 
 import * as React from "react";
-import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import type { PropertySummary } from "@emakao/api-types";
 
 export type WorkspaceMode = "agency" | "property";
 
 const WORKSPACE_MODE_KEY = "emakao:web-staff:workspace-mode";
-const PROPERTY_ID_KEY = "emakao:web-staff:property-id";
+const PROPERTY_SLUG_KEY = "emakao:web-staff:property-slug";
+const AGENCY_ROUTE_EXCEPTIONS = new Set(["new", "units"]);
 
-function readWorkspaceMode(): WorkspaceMode {
-  if (typeof window === "undefined") return "agency";
-  const value = window.localStorage.getItem(WORKSPACE_MODE_KEY);
-  return value === "property" ? "property" : "agency";
+function readStoredPropertySlug() {
+  if (typeof window === "undefined") return undefined;
+  return window.localStorage.getItem(PROPERTY_SLUG_KEY) ?? undefined;
 }
 
-function readPropertyId(): string | undefined {
-  if (typeof window === "undefined") return undefined;
-  return window.localStorage.getItem(PROPERTY_ID_KEY) ?? undefined;
+function readClientCookie(name: string) {
+  if (typeof document === "undefined") return undefined;
+  const cookies = document.cookie.split(";").map((entry) => entry.trim());
+  const match = cookies.find((entry) => entry.startsWith(`${name}=`));
+  return match ? decodeURIComponent(match.slice(name.length + 1)) : undefined;
+}
+
+function parseWorkspacePath(pathname: string) {
+  const segments = pathname.split("/").filter(Boolean);
+  const agencySlug = segments[0];
+
+  if (!agencySlug) {
+    return {
+      agencySlug: undefined,
+      workspaceMode: "agency" as WorkspaceMode,
+      propertySlug: undefined,
+    };
+  }
+
+  const isPropertyWorkspace =
+    segments[1] === "properties" &&
+    segments.length >= 3 &&
+    !AGENCY_ROUTE_EXCEPTIONS.has(segments[2]);
+
+  return {
+    agencySlug,
+    workspaceMode: isPropertyWorkspace ? ("property" as const) : ("agency" as const),
+    propertySlug: isPropertyWorkspace ? segments[2] : undefined,
+  };
 }
 
 function subscribeToWorkspaceStorage(onStoreChange: () => void) {
@@ -27,7 +53,7 @@ function subscribeToWorkspaceStorage(onStoreChange: () => void) {
     if (
       event.key === null ||
       event.key === WORKSPACE_MODE_KEY ||
-      event.key === PROPERTY_ID_KEY
+      event.key === PROPERTY_SLUG_KEY
     ) {
       onStoreChange();
     }
@@ -38,30 +64,16 @@ function subscribeToWorkspaceStorage(onStoreChange: () => void) {
 }
 
 function getStoredWorkspaceSnapshot() {
-  return `${readWorkspaceMode()}::${readPropertyId() ?? ""}`;
+  const mode =
+    typeof window === "undefined"
+      ? "agency"
+      : (window.localStorage.getItem(WORKSPACE_MODE_KEY) ?? "agency");
+  return `${mode}::${readStoredPropertySlug() ?? ""}`;
 }
 
 export function useWorkspace(properties: PropertySummary[]) {
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-
-  // ── 1. Determine active workspace from URL or Fallback ──────────────────
-  const workspaceParam = searchParams.get("w");
-
-  const { mode: urlMode, id: urlId } = React.useMemo(() => {
-    if (!workspaceParam) return { mode: undefined, id: undefined };
-    if (workspaceParam === "agency")
-      return { mode: "agency" as const, id: undefined };
-    if (workspaceParam.startsWith("p_")) {
-      return { mode: "property" as const, id: workspaceParam.substring(2) };
-    }
-    return { mode: undefined, id: undefined };
-  }, [workspaceParam]);
-
-  // Keep the first render deterministic for SSR hydration. If the URL does not
-  // define the workspace, restore the last local preference via an external
-  // store snapshot after hydration instead of branching on `window` in render.
   const storedWorkspaceSnapshot = React.useSyncExternalStore(
     subscribeToWorkspaceStorage,
     getStoredWorkspaceSnapshot,
@@ -75,70 +87,80 @@ export function useWorkspace(properties: PropertySummary[]) {
         storedMode === "property"
           ? ("property" as WorkspaceMode)
           : ("agency" as WorkspaceMode),
-      propertyId: storedPropertyId || undefined,
+      propertySlug: storedPropertyId || undefined,
     }),
     [storedMode, storedPropertyId],
   );
 
-  // Use URL params if present, otherwise fallback to the restored local state.
-  const workspaceMode: WorkspaceMode = urlMode ?? storedWorkspace.mode;
-  const activePropertyId = urlId ?? storedWorkspace.propertyId;
+  const pathWorkspace = React.useMemo(() => parseWorkspacePath(pathname), [pathname]);
+  const cookieAgencySlug = readClientCookie("active_agency_slug");
+  const agencySlug = pathWorkspace.agencySlug ?? cookieAgencySlug;
+  const activePropertySlug = pathWorkspace.propertySlug ?? storedWorkspace.propertySlug;
+  const workspaceMode = pathWorkspace.workspaceMode;
 
   const activeProperty = React.useMemo(
-    () => properties.find((p) => p.id === activePropertyId) || properties[0],
-    [properties, activePropertyId],
+    () =>
+      properties.find(
+        (property) =>
+          property.slug === activePropertySlug || property.id === activePropertySlug,
+      ) || properties[0],
+    [properties, activePropertySlug],
   );
 
-  // ── 2. Sync LocalStorage (Keep it as a "memory" of last selection) ──────
   React.useEffect(() => {
     if (typeof window === "undefined") return;
     window.localStorage.setItem(WORKSPACE_MODE_KEY, workspaceMode);
-    if (workspaceMode === "property" && activePropertyId) {
-      window.localStorage.setItem(PROPERTY_ID_KEY, activePropertyId);
+    if (workspaceMode === "property" && activePropertySlug) {
+      window.localStorage.setItem(PROPERTY_SLUG_KEY, activePropertySlug);
     }
-  }, [workspaceMode, activePropertyId]);
+  }, [workspaceMode, activePropertySlug]);
 
-  // ── 3. Navigation Helpers ───────────────────────────────────────────────
-  const buildWorkspaceUrl = React.useCallback(
-    (url: string, modeOverride?: WorkspaceMode, idOverride?: string) => {
-      const targetMode = modeOverride ?? workspaceMode;
-      const targetId = idOverride ?? activePropertyId;
-
-      const baseUrl = url.split("?")[0];
-      const existingParams = new URLSearchParams(url.split("?")[1] || "");
-
-      if (targetMode === "agency") {
-        existingParams.set("w", "agency");
-      } else if (targetId) {
-        existingParams.set("w", `p_${targetId}`);
-      }
-
-      return `${baseUrl}?${existingParams.toString()}`;
+  const buildAgencyUrl = React.useCallback(
+    (path: string) => {
+      if (!agencySlug) return path;
+      const normalized = path.startsWith("/") ? path : `/${path}`;
+      return `/${agencySlug}${normalized}`;
     },
-    [workspaceMode, activePropertyId],
+    [agencySlug],
+  );
+
+  const buildPropertyUrl = React.useCallback(
+    (propertySlug: string, suffix = "") => {
+      const base = buildAgencyUrl(`/properties/${propertySlug}`);
+      if (!suffix) return base;
+      const normalized = suffix.startsWith("/") ? suffix : `/${suffix}`;
+      return `${base}${normalized}`;
+    },
+    [buildAgencyUrl],
   );
 
   const selectAgencyWorkspace = React.useCallback(() => {
-    const newUrl = buildWorkspaceUrl(pathname, "agency");
-    router.push(newUrl);
-  }, [pathname, router, buildWorkspaceUrl]);
+    router.push(buildAgencyUrl("/dashboard"));
+  }, [buildAgencyUrl, router]);
 
   const selectPropertyWorkspace = React.useCallback(
-    (propertyId?: string) => {
-      const id = propertyId ?? properties[0]?.id;
-      const newUrl = buildWorkspaceUrl(pathname, "property", id);
-      router.push(newUrl);
+    (propertySlug?: string) => {
+      const targetSlug =
+        propertySlug ??
+        activeProperty?.slug ??
+        storedWorkspace.propertySlug ??
+        properties[0]?.slug;
+      if (!targetSlug) return;
+      router.push(buildPropertyUrl(targetSlug));
     },
-    [pathname, router, properties, buildWorkspaceUrl],
+    [activeProperty?.slug, buildPropertyUrl, properties, router, storedWorkspace.propertySlug],
   );
 
   return {
+    agencySlug,
     workspaceMode,
     activeProperty,
     activePropertyId: activeProperty?.id,
+    activePropertySlug: activeProperty?.slug ?? activePropertySlug,
     selectAgencyWorkspace,
     selectPropertyWorkspace,
-    buildWorkspaceUrl,
+    buildAgencyUrl,
+    buildPropertyUrl,
     isAgencyWorkspace: workspaceMode === "agency",
     isPropertyWorkspace: workspaceMode === "property",
   };

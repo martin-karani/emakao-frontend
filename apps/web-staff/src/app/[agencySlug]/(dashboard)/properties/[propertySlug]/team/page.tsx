@@ -4,29 +4,18 @@
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, Loader2 } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useProperty } from "@/hooks/use-properties";
-import { useProperties, useWorkspace } from "@/hooks";
+import { usePropertyRoute } from "../property-route-context";
 
 export default function TeamPage() {
-  const { id } = useParams<{ id: string }>();
-  const { data: property, isLoading } = useProperty(id);
-  const { data: properties } = useProperties();
-  const { buildWorkspaceUrl } = useWorkspace(properties ?? []);
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center gap-2 text-sm text-muted-foreground p-8">
-        <Loader2 className="w-4 h-4 animate-spin" /> Loading team…
-      </div>
-    );
-  }
+  const { agencySlug } = useParams<{ agencySlug: string }>();
+  const { property, propertySlug } = usePropertyRoute();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const owners: { id: string; name?: string; email?: string }[] =
@@ -60,7 +49,7 @@ export default function TeamPage() {
         <CardHeader className="flex flex-row items-start justify-between pb-3">
           <CardTitle className="text-base">Owners</CardTitle>
           <Link
-            href={buildWorkspaceUrl(`/properties/${id}/settings`)}
+            href={`/${agencySlug}/properties/${propertySlug}/settings`}
             className="inline-flex items-center gap-1 text-sm text-primary hover:underline mt-2"
           >
             Edit <ArrowRight className="h-3.5 w-3.5" />
