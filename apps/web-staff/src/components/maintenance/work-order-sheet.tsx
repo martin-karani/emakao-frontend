@@ -416,7 +416,7 @@ export function WorkOrderSheet({
                           ))}
                         </div>
                         <span className="text-xs font-medium">
-                          {people.map((p) => p.label).join(", ")}
+                          {people.map((p) => p.name).join(", ")}
                         </span>
                       </>
                     ) : (

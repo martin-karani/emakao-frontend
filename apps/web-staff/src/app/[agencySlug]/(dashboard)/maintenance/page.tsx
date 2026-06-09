@@ -16,16 +16,14 @@ export default function MaintenancePage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <WorkOrdersWorkspace
-        title="Maintenance"
-        description="Track, review, and update work orders across your portfolio."
-        orders={orders}
-        showPropertyColumn
-        defaultView="board"
-        emptyTitle="No maintenance tasks yet"
-        emptyDescription="Create your first work order to start tracking repairs, service requests, and follow-ups."
-      />
-    </div>
+    <WorkOrdersWorkspace
+      title="Maintenance"
+      description="Track, review, and update work orders across your portfolio."
+      orders={orders}
+      showPropertyColumn
+      defaultView="board"
+      emptyTitle="No maintenance tasks yet"
+      emptyDescription="Create your first work order to start tracking repairs, service requests, and follow-ups."
+    />
   );
 }

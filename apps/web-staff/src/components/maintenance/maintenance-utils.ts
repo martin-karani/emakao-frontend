@@ -1,36 +1,86 @@
-import { formatShortDate } from "@/lib/date-format";
+"use client";
+
+import { format } from "date-fns";
 import type { WorkOrder, WorkOrderStatus } from "@/hooks/use-work-orders";
 
-export type PersonChip = {
+export interface PersonChip {
   id: string;
-  label: string;
   initials: string;
+  name?: string;
+}
+
+export const ORDER_GROUPS = [
+  {
+    key: "open",
+    label: "Not Started",
+    dotClass: "bg-orange-400",
+    statuses: ["open"],
+  },
+  {
+    key: "inprogress",
+    label: "In Progress",
+    dotClass: "bg-blue-500",
+    statuses: ["inprogress"],
+  },
+  {
+    key: "done",
+    label: "Done",
+    dotClass: "bg-emerald-500",
+    statuses: ["completed", "cancelled"],
+  },
+] as const;
+
+export const STATUS_META: Record<
+  WorkOrderStatus,
+  { label: string; badgeClass: string }
+> = {
+  open: {
+    label: "Not Started",
+    badgeClass: "bg-orange-50 text-orange-700 border-orange-200",
+  },
+  inprogress: {
+    label: "In Progress",
+    badgeClass: "bg-blue-50 text-blue-700 border-blue-200",
+  },
+  completed: {
+    label: "Completed",
+    badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  },
+  cancelled: {
+    label: "Cancelled",
+    badgeClass: "bg-slate-50 text-slate-700 border-slate-200",
+  },
 };
 
-export function getInitials(value: string) {
-  return value
+export const PRIORITY_META = {
+  low: {
+    label: "Low",
+    className: "text-slate-600 bg-slate-50 border-slate-200",
+    iconClass: "text-slate-400",
+  },
+  medium: {
+    label: "Medium",
+    className: "text-amber-600 bg-amber-50 border-amber-200",
+    iconClass: "text-amber-400",
+  },
+  high: {
+    label: "High",
+    className: "text-orange-600 bg-orange-50 border-orange-200",
+    iconClass: "text-orange-400",
+  },
+  emergency: {
+    label: "Emergency",
+    className: "text-red-600 bg-red-50 border-red-200",
+    iconClass: "text-red-400",
+  },
+};
+
+export function getInitials(name: string) {
+  return name
     .split(" ")
-    .filter(Boolean)
-    .map((part) => part[0])
+    .map((n) => n[0])
     .join("")
-    .toUpperCase()
-    .slice(0, 2);
-}
-
-export function shortId(value?: string | null) {
-  if (!value) return "Unknown";
-  return value.slice(0, 6);
-}
-
-export function formatTimeline(order: WorkOrder) {
-  const start = order.due_date ?? order.scheduled_at ?? order.created_at;
-  const end = order.completed_at ?? null;
-
-  if (end) {
-    return `${formatShortDate(start)} - ${formatShortDate(end)}`;
-  }
-
-  return formatShortDate(start);
+    .toUpperCase();
 }
 
 export function buildPeople(
@@ -39,122 +89,35 @@ export function buildPeople(
   caretakerMap: Map<string, { name: string }>,
 ): PersonChip[] {
   const people: PersonChip[] = [];
-
   if (order.assigned_to) {
     const staff = staffMap.get(order.assigned_to);
-    const label = staff ? staff.email : `Staff ${shortId(order.assigned_to)}`;
     people.push({
-      id: `staff-${order.assigned_to}`,
-      label,
-      initials: getInitials(label),
+      id: order.assigned_to,
+      initials: staff?.email ? getInitials(staff.email.split("@")[0]) : "ST",
+      name: staff?.email ? staff.email.split("@")[0] : "Staff",
     });
   }
-
   if (order.assigned_caretaker_id) {
-    const caretaker = caretakerMap.get(order.assigned_caretaker_id);
-    const label =
-      caretaker?.name ?? `Caretaker ${shortId(order.assigned_caretaker_id)}`;
+    const ct = caretakerMap.get(order.assigned_caretaker_id);
     people.push({
-      id: `caretaker-${order.assigned_caretaker_id}`,
-      label,
-      initials: getInitials(label),
+      id: order.assigned_caretaker_id,
+      initials: ct?.name ? getInitials(ct.name) : "CT",
+      name: ct?.name ?? "Caretaker",
     });
   }
-
-  if (order.vendor_id) {
-    const label = `Vendor ${shortId(order.vendor_id)}`;
-    people.push({
-      id: `vendor-${order.vendor_id}`,
-      label,
-      initials: "VN",
-    });
-  }
-
   return people;
 }
 
-export const STATUS_META: Record<
-  WorkOrderStatus,
-  {
-    label: string;
-    dotClass: string;
-    badgeClass: string;
+export function formatTimeline(order: WorkOrder) {
+  if (order.status === "completed" && order.completed_at) {
+    return `Done ${format(new Date(order.completed_at), "MMM d")}`;
   }
-> = {
-  open: {
-    label: "Not Started",
-    dotClass: "bg-orange-500",
-    badgeClass: "bg-orange-500/10 text-orange-600 border-orange-200 dark:border-orange-900/50",
-  },
-  inprogress: {
-    label: "In Progress",
-    dotClass: "bg-blue-500",
-    badgeClass: "bg-blue-500/10 text-blue-600 border-blue-200 dark:border-blue-900/50",
-  },
-  completed: {
-    label: "Done",
-    dotClass: "bg-emerald-500",
-    badgeClass: "bg-emerald-500/10 text-emerald-600 border-emerald-200 dark:border-emerald-900/50",
-  },
-  cancelled: {
-    label: "Cancelled",
-    dotClass: "bg-slate-500",
-    badgeClass: "bg-slate-500/10 text-slate-600 border-slate-200 dark:border-slate-900/50",
-  },
-};
+  if (order.due_date) {
+    return `Due ${format(new Date(order.due_date), "MMM d")}`;
+  }
+  return `Created ${format(new Date(order.created_at), "MMM d")}`;
+}
 
-export const ORDER_GROUPS: Array<{
-  key: "open" | "inprogress" | "done";
-  label: string;
-  statuses: WorkOrderStatus[];
-  badgeClass: string;
-  dotClass: string;
-}> = [
-  {
-    key: "open",
-    label: "Not Started",
-    statuses: ["open"],
-    badgeClass: "bg-orange-500/10 text-orange-600 border-orange-200",
-    dotClass: "bg-orange-500",
-  },
-  {
-    key: "inprogress",
-    label: "In Progress",
-    statuses: ["inprogress"],
-    badgeClass: "bg-blue-500/10 text-blue-600 border-blue-200",
-    dotClass: "bg-blue-500",
-  },
-  {
-    key: "done",
-    label: "Done",
-    statuses: ["completed", "cancelled"],
-    badgeClass: "bg-emerald-500/10 text-emerald-600 border-emerald-200",
-    dotClass: "bg-emerald-500",
-  },
-];
-
-export const PRIORITY_META: Record<
-  WorkOrder["priority"],
-  { label: string; className: string; iconClass: string }
-> = {
-  low: {
-    label: "Lowest",
-    className: "bg-slate-500/10 text-slate-600 border-slate-200",
-    iconClass: "text-slate-500",
-  },
-  medium: {
-    label: "Normal",
-    className: "bg-blue-500/10 text-blue-600 border-blue-200",
-    iconClass: "text-blue-500",
-  },
-  high: {
-    label: "Urgent",
-    className: "bg-orange-500/10 text-orange-600 border-orange-200",
-    iconClass: "text-orange-500",
-  },
-  emergency: {
-    label: "Emergency",
-    className: "bg-red-500/10 text-red-600 border-red-200",
-    iconClass: "text-red-500",
-  },
-};
+export function shortId(uuid: string) {
+  return uuid.split("-")[0];
+}

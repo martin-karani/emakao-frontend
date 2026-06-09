@@ -12,6 +12,7 @@ import {
   LifeBuoy,
   Send,
   FileText,
+  UserCheck,
 } from "lucide-react";
 
 import { NavMain } from "@/components/layout/nav-main";
@@ -110,21 +111,21 @@ function buildPropertyNav(agencySlug: string, propertySlug: string) {
   return [
     {
       title: "Overview",
-      url: `/${agencySlug}/dashboard`,
+      url: base,
       icon: LayoutDashboard,
       isActive: true,
       items: [
-        { title: "Summary", url: `/${agencySlug}/dashboard` },
-        { title: "Analytics", url: `/${agencySlug}/dashboard/analytics` },
+        { title: "Summary", url: base },
+        { title: "Analytics", url: `${base}/analytics` },
       ],
     },
     {
-      title: "Property",
-      url: base,
+      title: "Portfolio",
+      url: `/${agencySlug}/properties`,
       icon: Building2,
       items: [
-        { title: "Overview", url: base },
         { title: "Units", url: `${base}/units` },
+        { title: "Tenants", url: `${base}/tenants` },
         { title: "Leases", url: `${base}/leases` },
         { title: "Team", url: `${base}/team` },
       ],

@@ -47,12 +47,26 @@ export function useProperty(id: string | undefined) {
   });
 }
 
+export function usePropertySummary(id: string | undefined) {
+  return useQuery({
+    queryKey: ["properties", id, "summary"],
+    queryFn: async (): Promise<PropertySummary> => {
+      const res = await fetch(`/api/proxy/api/v1/properties/${id}/summary`);
+      if (!res.ok) {
+        throw new Error("Failed to fetch property summary");
+      }
+      return res.json();
+    },
+    enabled: !!id,
+  });
+}
+
 export function usePropertyBySlug(slug: string | undefined) {
   return useQuery({
     queryKey: ["properties", "slug", slug],
     queryFn: async (): Promise<Property> => {
       const res = await fetch(
-        `/api/proxy/api/v1/properties/by-slug/${encodeURIComponent(slug!)}`
+        `/api/proxy/api/v1/properties/by-slug/${encodeURIComponent(slug!)}`,
       );
       if (!res.ok) {
         throw new Error("Failed to fetch property");
@@ -135,7 +149,7 @@ export function useDeleteProperty() {
 
       queryClient.setQueriesData<PropertySummary[]>(
         { queryKey: ["properties"] },
-        (old) => old?.filter((p) => p.id !== deletedId)
+        (old) => old?.filter((p) => p.id !== deletedId),
       );
       return { snapshot };
     },

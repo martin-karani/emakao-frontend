@@ -1177,6 +1177,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/properties/{id}/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a summary of property details (stats, expiring leases, maintenance, rent collection). */
+        get: operations["get_property_summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/properties/{propertyId}/owners": {
         parameters: {
             query?: never;
@@ -1891,10 +1908,12 @@ export interface components {
         CreateAgreementDto: {
             billing_frequency: components["schemas"]["BillingFrequency"];
             deposit_kes: string;
+            deposit_payment_method?: null | components["schemas"]["PaymentMethodType"];
             /** Format: date */
             end_date?: string | null;
             /** Format: uuid */
             property_id: string;
+            record_deposit_payment?: boolean;
             rent_amount_kes: string;
             /** Format: uuid */
             resident_id: string;
@@ -2216,6 +2235,27 @@ export interface components {
             error: string;
             message: string;
         };
+        ExpiringLease: {
+            /** Format: uuid */
+            agreement_id: string;
+            /**
+             * Format: int64
+             * @description Number of calendar days until `end_date` (can be negative if past).
+             */
+            days_until_expiry: number;
+            /** Format: date */
+            end_date: string;
+            /** Format: uuid */
+            property_id: string;
+            property_name: string;
+            rent_amount_kes: string;
+            /** Format: uuid */
+            resident_id: string;
+            resident_name: string;
+            /** Format: uuid */
+            unit_id: string;
+            unit_number: string;
+        };
         HealthResponse: {
             configuration: components["schemas"]["ConfigurationStatus"];
             database_pool: components["schemas"]["DatabasePoolStatus"];
@@ -2525,6 +2565,24 @@ export interface components {
             portal: components["schemas"]["PortalType"];
             token_type: string;
         };
+        MaintenanceSummary: {
+            code: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: int64 */
+            days_open: number;
+            priority: string;
+            /** Format: uuid */
+            property_id: string;
+            property_name: string;
+            status: string;
+            title: string;
+            /** Format: uuid */
+            unit_id?: string | null;
+            unit_number?: string | null;
+            /** Format: uuid */
+            work_order_id: string;
+        };
         MatchLineDto: {
             /** Format: uuid */
             journal_entry_id: string;
@@ -2767,6 +2825,12 @@ export interface components {
             payment_methods?: components["schemas"]["PaymentMethod"][];
             service_charges?: null | components["schemas"]["ServiceCharges"];
         };
+        PropertyRentSummary: {
+            collection_rate_pct: string;
+            outstanding_kes: string;
+            total_collected_kes: string;
+            total_expected_kes: string;
+        };
         PropertyResponse: {
             address: string;
             /** Format: uuid */
@@ -2789,6 +2853,36 @@ export interface components {
             updated_at: string;
             work_order_prefix: string;
         };
+        PropertyStats: {
+            /** Format: int64 */
+            active_leases: number;
+            occupancy_rate_pct: string;
+            /** Format: int64 */
+            occupied_units: number;
+            /** Format: int64 */
+            open_work_orders: number;
+            /** Format: int64 */
+            total_units: number;
+            /** Format: int64 */
+            vacant_units: number;
+        };
+        PropertySummary: {
+            /** @description Leases expiring soon in this property. */
+            expiring_leases: components["schemas"]["ExpiringLease"][];
+            /** Format: date-time */
+            generated_at: string;
+            name: string;
+            /** @description Open work orders for this property. */
+            pending_maintenance: components["schemas"]["MaintenanceSummary"][];
+            /** Format: uuid */
+            property_id: string;
+            /** @description Rent collection for the current month for this property. */
+            rent_collection: components["schemas"]["PropertyRentSummary"];
+            slug: string;
+            /** @description Statistics for this specific property. */
+            stats: components["schemas"]["PropertyStats"];
+        };
+        PropertySummaryDetailResponse: components["schemas"]["PropertySummary"];
         PropertySummaryResponse: {
             address: string;
             /** Format: uuid */
@@ -6758,6 +6852,47 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Missing or invalid JWT */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Property not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_property_summary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Property UUID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Property summary found */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropertySummaryDetailResponse"];
+                };
             };
             /** @description Missing or invalid JWT */
             401: {

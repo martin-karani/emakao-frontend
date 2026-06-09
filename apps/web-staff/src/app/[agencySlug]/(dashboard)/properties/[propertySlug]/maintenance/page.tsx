@@ -21,16 +21,14 @@ export default function PropertyMaintenancePage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <WorkOrdersWorkspace
-        title={`${property?.name || "Property"} Maintenance`}
-        description="Manage maintenance tasks for this property."
-        orders={orders}
-        propertyId={propertyId}
-        defaultView="board"
-        emptyTitle="No tasks for this property"
-        emptyDescription="Create a work order to start tracking maintenance for this property."
-      />
-    </div>
+    <WorkOrdersWorkspace
+      title={`${property?.name || "Property"} Maintenance`}
+      description="Manage maintenance tasks for this property."
+      orders={orders}
+      propertyId={propertyId}
+      defaultView="board"
+      emptyTitle="No tasks for this property"
+      emptyDescription="Create a work order to start tracking maintenance for this property."
+    />
   );
 }
