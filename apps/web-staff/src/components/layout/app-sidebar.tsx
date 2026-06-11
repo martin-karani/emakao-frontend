@@ -13,6 +13,7 @@ import {
   Send,
   FileText,
   UserCheck,
+  Zap,
 } from "lucide-react";
 
 import { NavMain } from "@/components/layout/nav-main";
@@ -131,10 +132,19 @@ function buildPropertyNav(agencySlug: string, propertySlug: string) {
       ],
     },
     {
+      title: "Utilities",
+      url: `${base}/utilities`,
+      icon: Zap,
+      items: [{ title: "Meters & Readings", url: `${base}/utilities` }],
+    },
+    {
       title: "Maintenance",
       url: `${base}/maintenance`,
       icon: Wrench,
-      items: [{ title: "Work Orders", url: `${base}/maintenance` }],
+      items: [
+        { title: "Work Orders", url: `${base}/maintenance` },
+        { title: "Inspections", url: `${base}/inspections` },
+      ],
     },
     {
       title: "Finance",

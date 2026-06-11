@@ -10,7 +10,12 @@
 "use client";
 
 import { useState } from "react";
-import { Controller, useFieldArray, useForm, useFormContext } from "react-hook-form";
+import {
+  Controller,
+  useFieldArray,
+  useForm,
+  useFormContext,
+} from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod/v4";
 import { Button } from "@/components/ui/button";
@@ -227,9 +232,7 @@ interface InlineUnitListProps {
   singleUnit?: boolean;
 }
 
-export function InlineUnitList({
-  singleUnit = false,
-}: InlineUnitListProps) {
+export function InlineUnitList({ singleUnit = false }: InlineUnitListProps) {
   const {
     register,
     control,
@@ -277,6 +280,24 @@ export function InlineUnitList({
     return sum + qty;
   }, 0);
 
+  // Helper to get or initialize unit numbers for a type
+  const getUnitNumbers = (index: number): string[] => {
+    const current = watch(`unit_types.${index}.unit_numbers`) || [];
+    const qty = watch(`unit_types.${index}.quantity`) || 0;
+
+    // Ensure we have exactly qty unit numbers
+    if (current.length === qty) {
+      return current;
+    }
+
+    const newUnitNumbers = Array.from({ length: qty }, (_, i) => {
+      return current[i] || `${i + 1}`;
+    });
+
+    setValue(`unit_types.${index}.unit_numbers`, newUnitNumbers);
+    return newUnitNumbers;
+  };
+
   return (
     <div className="space-y-8">
       {/* ── UNIT TYPES SECTION ───────────────────────────────────────────── */}
@@ -318,6 +339,7 @@ export function InlineUnitList({
               const typeErr = unitTypeErrors?.[index];
               const qty = watch(`unit_types.${index}.quantity`);
               const rent = watch(`unit_types.${index}.base_rent`);
+              const unitNumbers = getUnitNumbers(index);
 
               return (
                 <div
@@ -464,6 +486,34 @@ export function InlineUnitList({
                           />
                         </Field>
                       </div>
+
+                      {/* Unit Number Inputs */}
+                      {qty > 0 && (
+                        <div className="mt-6">
+                          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                            Unit Numbers/Name
+                          </Label>
+                          <div className="mt-3 grid grid-cols-2 md:grid-cols-3 gap-3">
+                            {unitNumbers.map((unitNumber, unitIndex) => (
+                              <Field key={unitIndex}>
+                                <Input
+                                  value={unitNumber}
+                                  onChange={(e) => {
+                                    const newNumbers = [...unitNumbers];
+                                    newNumbers[unitIndex] = e.target.value;
+                                    setValue(
+                                      `unit_types.${index}.unit_numbers`,
+                                      newNumbers,
+                                    );
+                                  }}
+                                  placeholder={`Unit ${unitIndex + 1}`}
+                                  className="bg-background"
+                                />
+                              </Field>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

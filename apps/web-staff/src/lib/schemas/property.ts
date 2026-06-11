@@ -46,6 +46,7 @@ export const unitTypeSchema = z.object({
   base_rent: z.number().min(0).optional(),
   base_deposit: z.number().min(0).optional(),
   quantity: z.number().int().min(1, "Quantity must be at least 1"),
+  unit_numbers: z.array(z.string().min(1, "Unit number is required")).optional(),
 });
 
 export const newTeamMemberSchema = z.object({

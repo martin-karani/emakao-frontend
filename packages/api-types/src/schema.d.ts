@@ -1909,7 +1909,6 @@ export interface components {
             billing_frequency: components["schemas"]["BillingFrequency"];
             deposit_kes: string;
             deposit_payment_method?: null | components["schemas"]["PaymentMethodType"];
-            /** Format: date */
             end_date?: string | null;
             /** Format: uuid */
             property_id: string;
@@ -1917,7 +1916,6 @@ export interface components {
             rent_amount_kes: string;
             /** Format: uuid */
             resident_id: string;
-            /** Format: date */
             start_date: string;
             /** Format: uuid */
             unit_id: string;
@@ -2473,7 +2471,7 @@ export interface components {
          * @description ledger_entries.entry_type
          * @enum {string}
          */
-        LedgerEntryType: "rent" | "deposit" | "hoadues" | "camcharge" | "utility" | "maintenancecharge" | "latefee" | "legalfee" | "penalty" | "paymentmpesa" | "paymentbank" | "paymentcash" | "depositrefund" | "creditnote" | "waiver" | "disbursement" | "journaladjustment";
+        LedgerEntryType: "rent" | "deposit" | "hoa_dues" | "cam_charge" | "utility" | "maintenance_charge" | "late_fee" | "legal_fee" | "penalty" | "payment_mpesa" | "payment_bank" | "payment_cash" | "deposit_refund" | "credit_note" | "waiver" | "disbursement" | "journal_adjustment";
         ListAgreementsParams: {
             /** Format: int64 */
             limit?: number | null;
@@ -2698,7 +2696,7 @@ export interface components {
          * @description payment_claims.method_type
          * @enum {string}
          */
-        PaymentMethodType: "mpesapaybill" | "mpesatill" | "banktransfer" | "cash";
+        PaymentMethodType: "mpesa_paybill" | "mpesa_till" | "bank_transfer" | "cash";
         PlanResponse: {
             description?: string | null;
             /** Format: uuid */
