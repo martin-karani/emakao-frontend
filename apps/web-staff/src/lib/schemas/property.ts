@@ -6,6 +6,26 @@
 
 import * as z from "zod/v4";
 
+const serviceChargesSchema = z.object({
+  enabled: z.boolean().optional().default(false),
+  security_fee_kes: z.number().min(0).optional().default(0),
+  water_rate_per_unit: z.number().min(0).optional().default(0),
+  garbage_fee_kes: z.number().min(0).optional().default(0),
+  electricity_common_kes: z.number().min(0).optional().default(0),
+  other_fees: z.array(z.object({ name: z.string(), amount: z.number() })).optional().default([]),
+});
+
+const policiesSchema = z.object({
+  payment_methods: z.array(z.any()).optional(),
+  agent_commission_percent: z.number().optional(),
+  late_fee_type: z.enum(["flat", "percent"]).optional(),
+  late_fee_value: z.number().optional(),
+  late_fee_grace_days: z.number().optional(),
+  deposit_months: z.number().optional(),
+  deposit_refund_days: z.number().optional(),
+  service_charges: serviceChargesSchema.optional(),
+});
+
 // ── Config sub-schemas ────────────────────────────────────────────────────────
 
 export const configSchema = z
@@ -84,6 +104,7 @@ export const propertySchema = z.object({
   agent_ids: z.array(z.string().uuid()).default([]),
   new_owners: z.array(newTeamMemberSchema).default([]),
   new_caretakers: z.array(newTeamMemberSchema).default([]),
+  policies: policiesSchema.optional(),
 });
 
 export type UnitFieldValues = z.infer<typeof unitSchema>;

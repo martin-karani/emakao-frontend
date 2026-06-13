@@ -31,7 +31,8 @@ const STEPS: GuidedCreateStep[] = [
   { id: 2, title: "Units", description: "Unit setup" },
   { id: 3, title: "Media", description: "Photos/Docs" },
   { id: 4, title: "Team", description: "Assignment" },
-  { id: 5, title: "Review", description: "Finalize" },
+  { id: 5, title: "Charges", description: "Service charges" },
+  { id: 6, title: "Review", description: "Finalize" },
 ];
 
 export default function NewPropertyPage() {
@@ -59,6 +60,16 @@ export default function NewPropertyPage() {
       agent_ids: [],
       new_owners: [],
       new_caretakers: [],
+      policies: {
+        service_charges: {
+          enabled: false,
+          security_fee_kes: 0,
+          water_rate_per_unit: 0,
+          garbage_fee_kes: 0,
+          electricity_common_kes: 0,
+          other_fees: [],
+        },
+      },
     },
   });
 
@@ -80,6 +91,8 @@ export default function NewPropertyPage() {
       case 4:
         return "Team";
       case 5:
+        return "Charges";
+      case 6:
         return "Review";
       default:
         return "";
@@ -108,6 +121,9 @@ export default function NewPropertyPage() {
         "new_owners",
         "new_caretakers",
       ]);
+    } else if (step === 5) {
+      // Charges are optional
+      valid = true;
     }
 
     if (valid) setStep((s) => s + 1);
@@ -207,6 +223,7 @@ export default function NewPropertyPage() {
         })),
         portal_base_url: window.location.origin,
         agency_name: "Emakao",
+        policies: values.policies,
       } as unknown as CreatePropertyDto)) as { id: string; slug: string };
 
       router.push(`/${agencySlug}/properties/${property.slug}`);
@@ -238,6 +255,27 @@ export default function NewPropertyPage() {
           )}
           {step === 4 && <TeamStep onNext={goToNext} onBack={goToBack} />}
           {step === 5 && (
+            <div className="space-y-6">
+              <StepHeader
+                icon={() => <span>💰</span>}
+                title="Service Charges"
+                description="Configure service charges for the property"
+              />
+              <ServiceChargesStep />
+              <div className="flex justify-end pt-4">
+                <Button
+                  type="button"
+                  size="lg"
+                  onClick={goToNext}
+                  className="rounded-xl px-8 shadow-lg shadow-primary/20"
+                >
+                  Next: Review
+                  <ArrowRight className="ml-2 size-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+          {step === 6 && (
             <ReviewStep
               onBack={goToBack}
               onSubmit={handleSubmit(handleFormSubmit, (err) => {
@@ -251,5 +289,131 @@ export default function NewPropertyPage() {
         </div>
       </GuidedCreateShell>
     </FormProvider>
+  );
+}
+
+// Import missing components
+import { StepHeader } from "@/components/properties/step-header";
+import { Button } from "@/components/ui/button";
+import { ArrowRight } from "lucide-react";
+import { Controller, useFormContext } from "react-hook-form";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+function ServiceChargesStep() {
+  const { control, watch } = useFormContext<PropertyFormValues>();
+  const serviceChargesEnabled = watch("policies.service_charges.enabled");
+
+  return (
+    <Card className="border border-dashed bg-muted/30">
+      <CardContent className="pt-6">
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Controller
+              name="policies.service_charges.enabled"
+              control={control}
+              render={({ field }) => (
+                <Checkbox
+                  id="enable_service_charges"
+                  checked={field.value}
+                  onCheckedChange={(checked) =>
+                    field.onChange(checked === true)
+                  }
+                />
+              )}
+            />
+            <Label htmlFor="enable_service_charges">
+              Enable Service Charges
+            </Label>
+          </div>
+
+          {serviceChargesEnabled && (
+            <div className="grid gap-4 pt-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="security_fee">Security Fee (KES)</Label>
+                <Controller
+                  name="policies.service_charges.security_fee_kes"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      id="security_fee"
+                      type="number"
+                      value={field.value}
+                      onChange={(e) =>
+                        field.onChange(parseFloat(e.target.value) || 0)
+                      }
+                    />
+                  )}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="water_rate">Water Rate (per unit, KES)</Label>
+                <Controller
+                  name="policies.service_charges.water_rate_per_unit"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      id="water_rate"
+                      type="number"
+                      value={field.value}
+                      onChange={(e) =>
+                        field.onChange(parseFloat(e.target.value) || 0)
+                      }
+                    />
+                  )}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="garbage_fee">Garbage Fee (KES)</Label>
+                <Controller
+                  name="policies.service_charges.garbage_fee_kes"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      id="garbage_fee"
+                      type="number"
+                      value={field.value}
+                      onChange={(e) =>
+                        field.onChange(parseFloat(e.target.value) || 0)
+                      }
+                    />
+                  )}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="electricity_common">
+                  Electricity Common (KES)
+                </Label>
+                <Controller
+                  name="policies.service_charges.electricity_common_kes"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      id="electricity_common"
+                      type="number"
+                      value={field.value}
+                      onChange={(e) =>
+                        field.onChange(parseFloat(e.target.value) || 0)
+                      }
+                    />
+                  )}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
